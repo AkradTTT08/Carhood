@@ -37,9 +37,17 @@
     onMount(fetchQuizzes);
 
     function startQuiz(quizId: string) {
-        goto(`/admin/host/${quizId}`);
+        const pin = Math.floor(100000 + Math.random() * 900000).toString();
+        const sessionId = Array.from({ length: 24 }, () =>
+            Math.floor(Math.random() * 16).toString(16),
+        ).join("");
+        goto(`/admin/host/${sessionId}?quiz=${quizId}&pin=${pin}`);
     }
 </script>
+
+<div class="page-bg">
+    <img src="/image/BGUSER.svg" alt="Background" class="bg-image" />
+</div>
 
 <div class="start-quiz-container" in:fade>
     <header class="admin-header">
@@ -105,9 +113,28 @@
 </div>
 
 <style lang="scss">
+    .page-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: #000;
+
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: auto;
+        }
+    }
+
     .start-quiz-container {
         width: 100%;
         box-sizing: border-box;
+        position: relative;
+        z-index: 1;
     }
 
     .quiz-content {
@@ -132,12 +159,14 @@
             font-size: 1.2rem;
             margin: 0;
             color: var(--accent);
+            line-height: 1.6;
         }
         p {
             color: var(--text-secondary);
             font-size: 0.7rem;
-            margin-top: 0.5rem;
+            margin-top: 0.8rem;
             font-family: var(--font-pixel);
+            line-height: 1.6;
         }
     }
 

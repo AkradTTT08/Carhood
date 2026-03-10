@@ -6,6 +6,7 @@
         currentQuestion,
         sendMessage,
         socketStore,
+        disconnect,
     } from "$lib/socketStore";
     import { fade, fly, scale } from "svelte/transition";
 
@@ -22,11 +23,14 @@
         selectedOption = index;
         submitted = true;
 
-        // Find room ID? We might need to store it in a state or store
-        // For now, the backend knows the room from the client object
         sendMessage("submit_answer", {
             answer_index: index,
         });
+    }
+
+    function leaveGame() {
+        disconnect();
+        window.location.href = "/";
     }
 </script>
 
@@ -34,7 +38,7 @@
     {#if $gameStatus === "LOBBY"}
         <div class="lobby-view" in:scale>
             <div class="status-card glass-card">
-                <h1 class="logo">CARHOOD</h1>
+                <h1 class="logo">TTT Space Quiz</h1>
                 <div class="loader"></div>
                 <h2>Preparing to Start...</h2>
                 <div class="joined-players">
@@ -57,6 +61,11 @@
                             </div>
                         {/each}
                     </div>
+                </div>
+                <div class="lobby-actions">
+                    <button class="btn-3d red small" on:click={leaveGame}
+                        >LEAVE ROOM</button
+                    >
                 </div>
                 <p class="instruction">See your name on the host screen!</p>
             </div>
@@ -214,6 +223,13 @@
                     box-shadow: 0 0 10px #4caf50;
                 }
             }
+        }
+
+        .lobby-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
         }
 
         .loader {

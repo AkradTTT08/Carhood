@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
+import { alertStore } from './alertStore';
 
-export type GameState = 'LOBBY' | 'QUESTION' | 'RESULT' | 'FINISHED';
+export type GameState = 'IDLE' | 'LOBBY' | 'QUESTION' | 'RESULT' | 'FINISHED';
 
 export interface Question {
     text: string;
@@ -13,7 +14,7 @@ export interface Question {
 export const socketStore = writable<WebSocket | null>(null);
 export const playersStore = writable<string[]>([]);
 export const currentUser = writable<string>("");
-export const gameStatus = writable<GameState>('LOBBY');
+export const gameStatus = writable<GameState>('IDLE');
 export const currentQuestion = writable<Question | null>(null);
 export const answersStore = writable<{ username: string, answer_index: number } | null>(null);
 
@@ -43,6 +44,7 @@ export function connect(roomID: string, username: string) {
         switch (msg.type) {
             case 'sync_players':
                 playersStore.set(msg.payload.players.filter((p: string) => p !== 'HOST'));
+                gameStatus.set('LOBBY');
                 break;
             case 'player_joined':
                 if (msg.payload.username === 'HOST') break;
@@ -73,7 +75,8 @@ export function connect(roomID: string, username: string) {
                 window.location.href = '/';
                 break;
             case 'error':
-                alert(msg.payload.message);
+                console.log('Backend Error Received:', msg.payload.message);
+                alertStore.showAlert(msg.payload.message);
                 break;
         }
     };
@@ -87,5 +90,17 @@ export function connect(roomID: string, username: string) {
 export function sendMessage(type: string, payload: any) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type, payload }));
+    }
+}
+
+export function disconnect() {
+    if (socket) {
+        socket.close();
+        socket = null;
+        socketStore.set(null);
+        playersStore.set([]);
+        gameStatus.set('LOBBY');
+        currentQuestion.set(null);
+        answersStore.set(null);
     }
 }

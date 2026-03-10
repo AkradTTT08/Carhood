@@ -1,21 +1,25 @@
 <script lang="ts">
-  import { connect } from "$lib/socketStore";
+  import { connect, gameStatus } from "$lib/socketStore";
   import { goto } from "$app/navigation";
+  import { alertStore } from "$lib/alertStore";
 
   let roomID = "";
   let username = "";
 
+  $: if ($gameStatus === "LOBBY") {
+    goto("/game");
+  }
+
   function joinGame() {
     if (!roomID) {
-      alert("กรุณากรอก Game PIN");
+      alertStore.showAlert("กรุณากรอก Game PIN");
       return;
     }
     if (!username) {
-      alert("กรุณากรอก NickName");
+      alertStore.showAlert("กรุณากรอก NickName");
       return;
     }
     connect(roomID, username);
-    goto("/game");
   }
 </script>
 

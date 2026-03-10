@@ -10,9 +10,10 @@ type Question struct {
 	ImageURL      string             `bson:"image_url" json:"image_url"`
 	Options       []string           `bson:"options" json:"options"`
 	CorrectAnswer int                `bson:"correct_answer" json:"correct_answer"`
+	CorrectAnswers []int             `bson:"correct_answers" json:"correct_answers"`
 	TimeLimit     int                `bson:"time_limit" json:"time_limit"` // in seconds
 	Type          string             `bson:"type" json:"type"`
-	Points        string             `bson:"points" json:"points"`
+	Points        int                `bson:"points" json:"points"`
 	AnswerType    string             `bson:"answer_type" json:"answer_type"`
 }
 

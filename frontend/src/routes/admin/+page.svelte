@@ -27,13 +27,6 @@
         q.title.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
-    let showCreateModal = false;
-    let newQuiz: Quiz = {
-        title: "",
-        questions: [],
-        room_id: Math.floor(100000 + Math.random() * 900000).toString(),
-    };
-
     async function fetchQuizzes() {
         const token = localStorage.getItem("admin_token");
         try {
@@ -45,47 +38,6 @@
             quizzes = Array.isArray(result) ? result : [];
         } catch (e) {
             console.error("Fetch error:", e);
-        }
-    }
-
-    function addQuestion() {
-        newQuiz.questions = [
-            ...newQuiz.questions,
-            {
-                text: "",
-                options: ["", "", "", ""],
-                correct_answer: 0,
-                time_limit: 20,
-            },
-        ];
-    }
-
-    async function saveQuiz() {
-        if (!newQuiz.title || newQuiz.questions.length === 0) return;
-
-        const token = localStorage.getItem("admin_token");
-        try {
-            const res = await fetch("http://localhost:8081/api/games", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(newQuiz),
-            });
-            if (res.ok) {
-                showCreateModal = false;
-                newQuiz = {
-                    title: "",
-                    questions: [],
-                    room_id: Math.floor(
-                        100000 + Math.random() * 900000,
-                    ).toString(),
-                };
-                await fetchQuizzes();
-            }
-        } catch (e) {
-            console.error("Save error:", e);
         }
     }
 
@@ -133,6 +85,10 @@
     }
 </script>
 
+<div class="page-bg">
+    <img src="/image/BGUSER.svg" alt="Background" class="bg-image" />
+</div>
+
 <div class="master-quiz-container">
     <Modal
         bind:show={showDeleteModal}
@@ -162,10 +118,7 @@
                 />
             </div>
 
-            <button
-                on:click={() => (showCreateModal = true)}
-                class="btn-3d blue"
-            >
+            <button on:click={() => goto("/admin/editor")} class="btn-3d blue">
                 + NEW QUIZ
             </button>
         </div>
@@ -212,102 +165,29 @@
     </div>
 </div>
 
-{#if showCreateModal}
-    <div class="modal-overlay">
-        <div class="glass-card modal-content">
-            <header class="modal-header">
-                <h2>Create New Quiz</h2>
-                <button
-                    class="btn-close"
-                    on:click={() => (showCreateModal = false)}>&times;</button
-                >
-            </header>
-
-            <section class="modal-body">
-                <div class="input-group">
-                    <label>Quiz Title</label>
-                    <input
-                        type="text"
-                        placeholder="e.g. Science Trivia"
-                        bind:value={newQuiz.title}
-                        class="input-field"
-                    />
-                </div>
-
-                <div class="questions-section">
-                    <h3>Questions ({newQuiz.questions.length})</h3>
-                    <div class="questions-list">
-                        {#each newQuiz.questions as question, i}
-                            <div class="question-builder">
-                                <div class="q-header">
-                                    <span>Question {i + 1}</span>
-                                    <button
-                                        class="btn-remove"
-                                        on:click={() =>
-                                            (newQuiz.questions =
-                                                newQuiz.questions.filter(
-                                                    (_, idx) => idx !== i,
-                                                ))}>&times;</button
-                                    >
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Your question here..."
-                                    bind:value={question.text}
-                                    class="input-field"
-                                />
-
-                                <div class="options-inputs">
-                                    {#each question.options as option, optIdx}
-                                        <div class="option-row">
-                                            <label class="radio-label">
-                                                <input
-                                                    type="radio"
-                                                    name="correct-{i}"
-                                                    value={optIdx}
-                                                    bind:group={
-                                                        question.correct_answer
-                                                    }
-                                                />
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="Option {optIdx +
-                                                    1}"
-                                                bind:value={
-                                                    question.options[optIdx]
-                                                }
-                                                class="input-field"
-                                            />
-                                        </div>
-                                    {/each}
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                    <button class="btn-secondary" on:click={addQuestion}
-                        >+ Add Question</button
-                    >
-                </div>
-            </section>
-
-            <footer class="modal-footer">
-                <button
-                    class="btn-ghost"
-                    on:click={() => (showCreateModal = false)}>Cancel</button
-                >
-                <button class="btn-primary" on:click={saveQuiz}
-                    >Save Quiz</button
-                >
-            </footer>
-        </div>
-    </div>
-{/if}
-
 <style lang="scss">
+    .page-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: #000;
+
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: auto;
+        }
+    }
+
     .master-quiz-container {
         width: 100%;
         box-sizing: border-box;
+        position: relative;
+        z-index: 1;
     }
 
     .quiz-content {
@@ -332,13 +212,15 @@
             font-size: 1.2rem;
             margin: 0;
             color: var(--accent);
+            line-height: 1.6;
         }
 
         p {
             color: var(--text-secondary);
             font-size: 0.7rem;
-            margin-top: 0.5rem;
+            margin-top: 0.8rem;
             font-family: var(--font-pixel);
+            line-height: 1.6;
         }
     }
 
@@ -464,142 +346,5 @@
         width: 45px;
         padding: 0.5rem;
         font-size: 1.2rem;
-    }
-
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(5px);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        padding: 1rem;
-    }
-
-    .modal-content {
-        width: 100%;
-        max-width: 900px;
-        height: 90vh;
-        display: flex;
-        flex-direction: column;
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .modal-header,
-    .modal-footer {
-        padding: 1.5rem 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    .modal-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
-    .input-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        label {
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-    }
-
-    .question-builder {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .q-header {
-        display: flex;
-        justify-content: space-between;
-        font-weight: 700;
-        color: var(--accent);
-    }
-
-    .options-inputs {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .option-row {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        input[type="radio"] {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--success);
-        }
-    }
-
-    .btn-remove {
-        background: none;
-        border: none;
-        color: var(--secondary);
-        font-size: 1.5rem;
-        cursor: pointer;
-    }
-
-    .btn-secondary {
-        width: 100%;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px dashed rgba(255, 255, 255, 0.2);
-        color: white;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 600;
-        &:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-    }
-
-    .btn-close {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 2rem;
-        cursor: pointer;
-    }
-
-    .modal-footer {
-        justify-content: flex-end;
-        gap: 1rem;
-    }
-
-    .btn-ghost {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    @media (max-width: 768px) {
-        .options-inputs {
-            grid-template-columns: 1fr;
-        }
     }
 </style>

@@ -1,5 +1,6 @@
 <script>
   import "../app.scss";
+  import ThemedAlert from "$lib/components/ThemedAlert.svelte";
 </script>
 
 <div class="main-bg">
@@ -9,6 +10,8 @@
 <main class="app-content">
   <slot />
 </main>
+
+<ThemedAlert />
 
 <style lang="scss">
   :global(body) {

@@ -58,6 +58,10 @@
     onMount(fetchHistory);
 </script>
 
+<div class="page-bg">
+    <img src="/image/BGUSER.svg" alt="Background" class="bg-image" />
+</div>
+
 <div class="history-container" in:fade>
     <header class="admin-header">
         <div class="header-left">
@@ -127,9 +131,28 @@
 </div>
 
 <style lang="scss">
+    .page-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: #000;
+
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: auto;
+        }
+    }
+
     .history-container {
         width: 100%;
         box-sizing: border-box;
+        position: relative;
+        z-index: 1;
     }
 
     .admin-header {
@@ -140,22 +163,24 @@
         justify-content: space-between;
         align-items: center;
         margin: -2rem -2rem 3rem -2rem;
-        padding: 1.5rem 2rem;
-        background: rgba(70, 23, 143, 0.4);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        padding: 2rem;
+        background: rgba(10, 10, 30, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 4px solid var(--primary);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 
         h1 {
-            font-size: 2.2rem;
+            font-size: 1.2rem;
             margin: 0;
+            color: var(--accent);
+            line-height: 1.6;
         }
         p {
             color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin: 0;
-            opacity: 0.8;
+            font-size: 0.7rem;
+            margin-top: 0.8rem;
+            font-family: var(--font-pixel);
+            line-height: 1.6;
         }
     }
 

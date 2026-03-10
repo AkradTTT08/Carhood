@@ -88,36 +88,65 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 0.8rem;
+            gap: 1.5rem;
+            padding: 0 0.5rem;
 
             .menu-item {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
-                padding: 1rem 1.2rem;
-                border-radius: 15px;
+                gap: 1.2rem;
+                padding: 1.2rem;
                 text-decoration: none;
+                transition: all 0.1s ease;
+                position: relative;
+                top: 0;
+                border: 4px solid rgba(255, 255, 255, 0.2);
+                font-family: var(--font-pixel);
+                font-size: 0.7rem;
+                justify-content: flex-start;
+                background: rgba(255, 255, 255, 0.05);
+                box-shadow: 0 6px 0 rgba(0, 0, 0, 0.5);
                 color: var(--text-secondary);
-                transition: all 0.3s ease;
-                font-weight: 600;
 
                 .item-icon {
-                    font-size: 1.2rem;
+                    font-size: 1.4rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 30px;
+                }
+
+                .item-text {
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    line-height: 1.5;
                 }
 
                 &:hover {
-                    background: rgba(255, 255, 255, 0.05);
+                    top: -2px;
+                    background: rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 8px 0 rgba(0, 0, 0, 0.5);
                     color: white;
-                    transform: translateX(5px);
+                    border-color: rgba(255, 255, 255, 0.4);
+                }
+
+                &:active {
+                    top: 4px;
+                    box-shadow: none;
                 }
 
                 &.active {
                     background: var(--primary);
                     color: white;
-                    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+                    border-color: #fff;
+                    box-shadow: 0 6px 0 #2a0e56;
 
                     &:hover {
-                        transform: none;
+                        box-shadow: 0 8px 0 #2a0e56;
+                    }
+
+                    &:active {
+                        box-shadow: none;
                     }
                 }
             }
@@ -125,12 +154,13 @@
 
         .footer {
             padding-top: 2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid rgba(255, 255, 255, 0.05);
 
             .logout-btn {
                 width: 100%;
-                padding: 1rem;
-                font-size: 0.7rem;
+                padding: 1.2rem;
+                font-size: 0.8rem;
+                letter-spacing: 2px;
             }
         }
     }

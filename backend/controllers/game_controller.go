@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -13,7 +15,8 @@ import (
 )
 
 func generatePIN() string {
-	return primitive.NewObjectID().Hex()[:6]
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return fmt.Sprintf("%06d", r.Intn(1000000))
 }
 
 func CreateGame(c *gin.Context) {
@@ -117,7 +120,7 @@ func DuplicateGame(c *gin.Context) {
 
 	game.ID = primitive.NewObjectID()
 	game.Title = game.Title + " (Copy)"
-	game.RoomID = primitive.NewObjectID().Hex()[:6] // Generate new PIN
+	game.RoomID = generatePIN() // Generate new PIN
 
 	_, err = db.GameCollection.InsertOne(ctx, game)
 	if err != nil {

@@ -8,6 +8,7 @@
     export let confirmText = "OK";
     export let cancelText = "Cancel";
     export let type = "info"; // info, warning, danger
+    export let classic = false; // New prop for professional style
 
     function handleConfirm() {
         dispatch("confirm");
@@ -21,7 +22,10 @@
 
 {#if show}
     <div class="modal-backdrop" on:click={handleCancel}>
-        <div class="modal-container glass-card" on:click|stopPropagation>
+        <div
+            class="modal-container glass-card {classic ? 'classic' : ''}"
+            on:click|stopPropagation
+        >
             <div class="modal-header">
                 <h2 class={type}>{title}</h2>
                 <button class="close-btn" on:click={handleCancel}
@@ -32,11 +36,13 @@
                 <p>{message}</p>
             </div>
             <div class="modal-footer">
-                <button class="btn-3d" on:click={handleCancel}
-                    >{cancelText}</button
+                <button
+                    class={classic ? "btn-classic gray" : "btn-3d"}
+                    on:click={handleCancel}>{cancelText}</button
                 >
                 <button
-                    class="btn-3d {type === 'danger'
+                    class="{classic ? 'btn-classic' : 'btn-3d'} {type ===
+                    'danger'
                         ? 'red'
                         : type === 'warning'
                           ? 'yellow'
@@ -62,7 +68,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: 2000;
         animation: fadeIn 0.3s ease;
     }
 
@@ -75,6 +81,73 @@
         color: #333;
         transform: scale(1);
         animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        &.classic {
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            font-family: var(--font-main);
+            background: #fff;
+            border: 1px solid #ddd;
+
+            &::after {
+                display: none;
+            }
+
+            h2 {
+                font-family: var(--font-main);
+                font-weight: 700;
+                letter-spacing: 0;
+                font-size: 1.4rem;
+            }
+
+            p {
+                font-family: var(--font-main);
+                color: #444;
+            }
+
+            .btn-classic {
+                font-family: var(--font-main);
+                font-weight: 600;
+                padding: 0.7rem 1.4rem;
+                border-radius: 8px;
+                border: none;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 0.95rem;
+
+                &.gray {
+                    background: #f2f2f2;
+                    color: #555;
+                    &:hover {
+                        background: #e8e8e8;
+                    }
+                }
+
+                &.blue {
+                    background: #1368ce;
+                    color: white;
+                    &:hover {
+                        background: #0f56aa;
+                    }
+                }
+
+                &.red {
+                    background: #e21b3c;
+                    color: white;
+                    &:hover {
+                        background: #d01937;
+                    }
+                }
+
+                &.yellow {
+                    background: #d89e00;
+                    color: white;
+                    &:hover {
+                        background: #c08d00;
+                    }
+                }
+            }
+        }
 
         .modal-header {
             display: flex;

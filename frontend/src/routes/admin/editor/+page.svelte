@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { page } from "$app/stores";
+    import { alertStore } from "$lib/alertStore";
     import { goto } from "$app/navigation";
     import Modal from "$lib/components/Modal.svelte";
 
@@ -19,8 +20,9 @@
                 image_url: "",
                 options: ["", "", "", ""],
                 correct_answer: -1,
+                correct_answers: [],
                 time_limit: 20,
-                points: "Standard",
+                points: 1000,
                 type: "Quiz",
                 answer_type: "Single select",
             },
@@ -48,7 +50,19 @@
                     },
                 );
                 if (res.ok) {
-                    quiz = await res.json();
+                    const data = await res.json();
+                    // Migrate old data if necessary
+                    if (data.questions) {
+                        data.questions = data.questions.map((q) => ({
+                            ...q,
+                            correct_answers:
+                                q.correct_answers ||
+                                (q.correct_answer !== -1
+                                    ? [q.correct_answer]
+                                    : []),
+                        }));
+                    }
+                    quiz = data;
                 } else if (res.status === 401) {
                     goto("/admin/login");
                 }
@@ -107,8 +121,9 @@
                 image_url: "",
                 options: ["", "", "", ""],
                 correct_answer: -1,
+                correct_answers: [],
                 time_limit: 20,
-                points: "Standard",
+                points: 1000,
                 type: "Quiz",
                 answer_type: "Single select",
             },
@@ -136,6 +151,13 @@
     }
 
     async function saveQuiz() {
+        if (!quiz.questions || quiz.questions.length === 0) {
+            alertStore.showAlert(
+                "กรุณาสร้างคำถามอย่างน้อย 1 ข้อก่อนบันทึก (Please add at least 1 question before saving)",
+            );
+            return false;
+        }
+
         const token = localStorage.getItem("admin_token");
         const isUpdate = quiz.id && quiz.id !== "";
         const url = isUpdate
@@ -156,12 +178,16 @@
                 return true;
             } else {
                 const data = await res.json();
-                alert("Failed to save: " + (data.error || "Unknown error"));
+                alertStore.showAlert(
+                    "Failed to save: " + (data.error || "Unknown error"),
+                );
                 return false;
             }
         } catch (e) {
             console.error(e);
-            alert("Network error. Please check your connection.");
+            alertStore.showAlert(
+                "Network error. Please check your connection.",
+            );
             return false;
         }
     }
@@ -209,6 +235,26 @@
         showExitModal = false;
         goto("/admin");
     }
+
+    function toggleAnswer(index) {
+        if (!currentQuestion) return;
+
+        if (currentQuestion.answer_type === "Multi-select") {
+            const arr = currentQuestion.correct_answers || [];
+            if (arr.includes(index)) {
+                currentQuestion.correct_answers = arr.filter(
+                    (i) => i !== index,
+                );
+            } else {
+                currentQuestion.correct_answers = [...arr, index];
+            }
+        } else {
+            // Single select
+            currentQuestion.correct_answers = [index];
+            currentQuestion.correct_answer = index;
+        }
+        quiz.questions = [...quiz.questions];
+    }
 </script>
 
 <Modal
@@ -218,6 +264,7 @@
     confirmText="บันทึกและออก (Save & Exit)"
     cancelText="ออกโดยไม่บันทึก (Exit without saving)"
     type="info"
+    classic={true}
     on:confirm={confirmExitWithSave}
     on:cancel={confirmExitNoSave}
 />
@@ -229,6 +276,7 @@
     confirmText="ลบทันที (Delete Now)"
     cancelText="ยกเลิก (Cancel)"
     type="danger"
+    classic={true}
     on:confirm={confirmDeleteQuiz}
     on:cancel={() => (showDeleteModal = false)}
 />
@@ -237,11 +285,7 @@
     <!-- Top Header -->
     <header class="top-nav">
         <div class="left">
-            <button
-                class="btn-3d purple btn-exit"
-                on:click={exitEditor}
-                style="padding: 0.6rem 1.2rem; min-width: 90px; font-weight: 800; border: none;"
-            >
+            <button class="btn-nav btn-exit" on:click={exitEditor}>
                 EXIT
             </button>
             <input
@@ -251,20 +295,16 @@
             />
         </div>
         <div class="right">
-            <button
-                class="btn-3d red btn-delete-quiz"
-                on:click={deleteQuiz}
-                style="padding: 0.5rem 1rem; font-size: 0.9rem; margin-right: 0.5rem;"
-            >
+            <button class="btn-nav btn-delete-quiz" on:click={deleteQuiz}>
                 Delete Quiz
             </button>
             <button
-                class="btn-3d blue btn-save"
+                class="btn-nav btn-save"
+                class:disabled={!quiz.questions || quiz.questions.length === 0}
                 on:click={async () => {
                     const success = await saveQuiz();
                     if (success) goto("/admin");
                 }}
-                style="padding: 0.5rem 1.5rem; font-size: 1rem;"
             >
                 Save
             </button>
@@ -355,85 +395,80 @@
 
                 {#if currentQuestion.type === "True or False"}
                     <div class="answer-grid tf-mode">
-                        <div class="ans-box blue">
+                        <div
+                            class="ans-box blue {currentQuestion.correct_answers.includes(
+                                0,
+                            )
+                                ? 'selected'
+                                : ''}"
+                            on:click={() => toggleAnswer(0)}
+                        >
                             <div class="shape diamond"></div>
                             <span class="tf-text">True</span>
-                            <input
-                                type="radio"
-                                name="correct"
-                                value={0}
-                                bind:group={currentQuestion.correct_answer}
-                            />
+                            <div class="selection-indicator">
+                                {#if currentQuestion.correct_answers.includes(0)}
+                                    <span class="check">✓</span>
+                                {/if}
+                            </div>
                         </div>
-                        <div class="ans-box red">
+                        <div
+                            class="ans-box red {currentQuestion.correct_answers.includes(
+                                1,
+                            )
+                                ? 'selected'
+                                : ''}"
+                            on:click={() => toggleAnswer(1)}
+                        >
                             <div class="shape triangle"></div>
                             <span class="tf-text">False</span>
-                            <input
-                                type="radio"
-                                name="correct"
-                                value={1}
-                                bind:group={currentQuestion.correct_answer}
-                            />
+                            <div class="selection-indicator">
+                                {#if currentQuestion.correct_answers.includes(1)}
+                                    <span class="check">✓</span>
+                                {/if}
+                            </div>
                         </div>
                     </div>
                 {:else}
                     <div class="answer-grid">
-                        <div class="ans-box red">
-                            <div class="shape triangle"></div>
-                            <input
-                                type="text"
-                                placeholder="Add answer 1"
-                                bind:value={currentQuestion.options[0]}
-                            />
-                            <input
-                                type="radio"
-                                name="correct"
-                                value={0}
-                                bind:group={currentQuestion.correct_answer}
-                            />
-                        </div>
-                        <div class="ans-box blue">
-                            <div class="shape diamond"></div>
-                            <input
-                                type="text"
-                                placeholder="Add answer 2"
-                                bind:value={currentQuestion.options[1]}
-                            />
-                            <input
-                                type="radio"
-                                name="correct"
-                                value={1}
-                                bind:group={currentQuestion.correct_answer}
-                            />
-                        </div>
-                        <div class="ans-box yellow">
-                            <div class="shape circle"></div>
-                            <input
-                                type="text"
-                                placeholder="Add answer 3 (optional)"
-                                bind:value={currentQuestion.options[2]}
-                            />
-                            <input
-                                type="radio"
-                                name="correct"
-                                value={2}
-                                bind:group={currentQuestion.correct_answer}
-                            />
-                        </div>
-                        <div class="ans-box green">
-                            <div class="shape square"></div>
-                            <input
-                                type="text"
-                                placeholder="Add answer 4 (optional)"
-                                bind:value={currentQuestion.options[3]}
-                            />
-                            <input
-                                type="radio"
-                                name="correct"
-                                value={3}
-                                bind:group={currentQuestion.correct_answer}
-                            />
-                        </div>
+                        {#each [0, 1, 2, 3] as i}
+                            <div
+                                class="ans-box {i === 0
+                                    ? 'red'
+                                    : i === 1
+                                      ? 'blue'
+                                      : i === 2
+                                        ? 'yellow'
+                                        : 'green'} {currentQuestion.correct_answers.includes(
+                                    i,
+                                )
+                                    ? 'selected'
+                                    : ''}"
+                                on:click={() => toggleAnswer(i)}
+                            >
+                                <div
+                                    class="shape {i === 0
+                                        ? 'triangle'
+                                        : i === 1
+                                          ? 'diamond'
+                                          : i === 2
+                                            ? 'circle'
+                                            : 'square'}"
+                                ></div>
+                                <input
+                                    type="text"
+                                    placeholder={i < 2
+                                        ? `Add answer ${i + 1}`
+                                        : `Add answer ${i + 1} (optional)`}
+                                    bind:value={currentQuestion.options[i]}
+                                    on:click|stopPropagation
+                                />
+                                <div class="selection-indicator">
+                                    {#if currentQuestion.correct_answers.includes(i)}
+                                        <span class="check">✓</span>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/each}
                     </div>
                 {/if}
             </div>
@@ -460,12 +495,19 @@
             </div>
 
             <div class="prop-group">
-                <label>Points</label>
-                <select bind:value={currentQuestion.points}>
-                    <option>Standard</option>
-                    <option>Double points</option>
-                    <option>No points</option>
-                </select>
+                <label
+                    >Points {currentQuestion.points === 0
+                        ? "(No points)"
+                        : ""}</label
+                >
+                <input
+                    type="number"
+                    bind:value={currentQuestion.points}
+                    min="0"
+                    step="100"
+                    class="prop-input"
+                    placeholder="Points (0 = No points)"
+                />
             </div>
 
             <div class="prop-group">
@@ -517,35 +559,64 @@
             font-weight: 700;
             font-size: 1.1rem;
             border: 1px solid transparent;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 4px 12px;
+            border-radius: 6px;
             background: #f8f9fa;
-            width: 300px;
+            width: 320px;
+            transition: all 0.2s;
             &:focus {
                 background: white;
-                border-color: #ccc;
+                border: 1px solid #00d2ff;
                 outline: none;
+                box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.1);
+            }
+        }
+
+        .btn-nav {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:active {
+                transform: translateY(1px);
+            }
+        }
+
+        .btn-exit {
+            background: #6e41e2;
+            color: white;
+            &:hover {
+                background: #5d35c2;
             }
         }
 
         .btn-delete-quiz {
             background: #e21b3c;
             color: white;
-            border: none;
-            margin-right: 0.5rem;
             &:hover {
                 background: #d01937;
             }
         }
 
-        .btn-exit {
-            // Specific overrides if needed, but removing generic button style is better
-        }
-
         .btn-save {
             background: #1368ce;
             color: white;
-            border: none;
+            &:hover:not(.disabled) {
+                background: #0f56aa;
+            }
+            &.disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                filter: grayscale(0.5);
+            }
         }
     }
 
@@ -888,31 +959,43 @@
                     }
                 }
 
-                input[type="radio"] {
-                    width: 40px;
-                    height: 40px;
-                    flex-shrink: 0;
-                    aspect-ratio: 1 / 1;
-                    cursor: pointer;
-                    accent-color: #fff;
-                    appearance: none;
-                    background: rgba(255, 255, 255, 0.2);
-                    border: 3px solid rgba(255, 255, 255, 0.5);
-                    border-radius: 50%;
-                    display: grid;
-                    place-items: center;
-                    transition: all 0.2s;
+                &.selected {
+                    box-shadow:
+                        0 0 0 4px rgba(255, 255, 255, 0.4),
+                        0 8px 15px rgba(0, 0, 0, 0.3);
+                    transform: scale(1.02);
+                }
 
-                    &:checked {
-                        background: white;
-                        border-color: white;
-                        &::after {
-                            content: "✔";
+                .selection-indicator {
+                    width: 48px;
+                    height: 48px;
+                    border: 3px solid rgba(255, 255, 255, 0.4);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255, 255, 255, 0.1);
+                    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+                    .check {
+                        color: white;
+                        font-size: 2rem;
+                        font-weight: 900;
+                        animation: popIn 0.3s ease;
+                    }
+
+                    :global(.ans-box.selected) & {
+                        background: #fff;
+                        border-color: #fff;
+                        .check {
                             color: #26890c;
-                            font-size: 1.5rem;
-                            font-weight: bold;
                         }
                     }
+                }
+
+                input[type="radio"],
+                input[type="checkbox"] {
+                    display: none;
                 }
 
                 .shape {
@@ -984,13 +1067,24 @@
                 font-size: 0.9rem;
                 color: #333;
             }
-            select {
+            select,
+            .prop-input {
                 padding: 0.75rem;
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 font-size: 1rem;
                 background: #f9f9f9;
                 cursor: pointer;
+                font-family: var(--font-main);
+            }
+
+            .prop-input {
+                cursor: text;
+                &:focus {
+                    outline: none;
+                    border-color: #1368ce;
+                    background: white;
+                }
             }
         }
 
