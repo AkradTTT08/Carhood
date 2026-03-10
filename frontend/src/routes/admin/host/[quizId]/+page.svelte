@@ -11,6 +11,7 @@
         sendMessage,
     } from "$lib/socketStore";
     import { fade, fly, scale } from "svelte/transition";
+    import Modal from "$lib/components/Modal.svelte";
 
     interface Question {
         text: string;
@@ -36,6 +37,7 @@
     let playerScores: Record<string, number> = {};
     let answersReceived = 0;
     let answeredThisRound = new Set<string>();
+    let showCancelModal = false;
 
     // Initializing scores for new players reactively but safely
     $: {
@@ -65,19 +67,26 @@
     }
 
     async function fetchQuiz() {
-        const id = $page.params.quizId;
+        const urlParams = new URLSearchParams(window.location.search);
+        const quizId = urlParams.get("quiz");
+        const pin = urlParams.get("pin");
+
         const token = localStorage.getItem("admin_token");
         try {
             const res = await fetch(
-                `http://127.0.0.1:8081/api/games/${id}?host=true`,
+                `http://127.0.0.1:8081/api/games/${quizId}`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 },
             );
             if (res.ok) {
-                quiz = await res.json();
+                const data = await res.json();
+                // Override the template's room_id with our dynamic session PIN
+                if (pin) data.room_id = pin;
+                quiz = data;
+
                 // Connect to socket as HOST
-                connect(quiz.room_id, "HOST");
+                connect(data.room_id, "HOST");
             } else {
                 throw new Error("Failed to fetch quiz");
             }
@@ -157,6 +166,14 @@
         gameStatus.set("FINISHED");
         sendMessage("finish_game", { room_id: quiz?.room_id });
         saveGameHistory();
+    }
+
+    function confirmCancel() {
+        if (!quiz) return;
+        sendMessage("cancel_game", {
+            room_id: quiz.room_id,
+        });
+        goto("/admin/start");
     }
 
     async function saveGameHistory() {
@@ -241,19 +258,14 @@
                 <footer class="lobby-footer">
                     <button
                         class="btn-3d purple cancel-btn"
-                        on:click={() => {
-                            sendMessage("cancel_game", {
-                                room_id: quiz.room_id,
-                            });
-                            goto("/admin/start");
-                        }}
+                        on:click={() => (showCancelModal = true)}
                     >
                         CANCEL ✖
                     </button>
                     <button
                         class="btn-3d blue run-btn"
                         on:click={startRun}
-                        disabled={$playersStore.length === 0}
+                        disabled={!quiz || $playersStore.length === 0}
                     >
                         START RUN 🚀
                     </button>
@@ -359,6 +371,16 @@
             </div>
         {/if}
     {/if}
+
+    <Modal
+        bind:show={showCancelModal}
+        title="Confirm Cancellation"
+        message="คุณต้องการยกเลิกห้องเล่นเกมนี้หรือไม่?"
+        confirmText="ตกลง"
+        cancelText="ไม่ใช่"
+        type="danger"
+        on:confirm={confirmCancel}
+    />
 </div>
 
 <style lang="scss">

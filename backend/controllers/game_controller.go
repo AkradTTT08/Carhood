@@ -79,12 +79,6 @@ func GetGame(c *gin.Context) {
 		return
 	}
 
-	// If requested from host view, generate a new PIN
-	if c.Query("host") == "true" {
-		game.RoomID = generatePIN()
-		db.GameCollection.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": bson.M{"room_id": game.RoomID}})
-	}
-
 	c.JSON(http.StatusOK, game)
 }
 

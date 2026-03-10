@@ -19,9 +19,11 @@ export const currentQuestion = writable<Question | null>(null);
 export const answersStore = writable<{ username: string, answer_index: number } | null>(null);
 
 let socket: WebSocket | null = null;
+let connectedUser: string = "";
 
 export function connect(roomID: string, username: string) {
     currentUser.set(username);
+    connectedUser = username;
     socket = new WebSocket('ws://127.0.0.1:8081/ws');
 
     socket.onopen = () => {
@@ -71,8 +73,11 @@ export function connect(roomID: string, username: string) {
                 answersStore.set(msg.payload);
                 break;
             case 'cancel_game':
-                gameStatus.set('LOBBY'); // Or handle redirect in component
-                window.location.href = '/';
+                gameStatus.set('LOBBY');
+                // Only redirect players to home, HOST handles their own navigation
+                if (connectedUser !== 'HOST') {
+                    window.location.href = '/';
+                }
                 break;
             case 'error':
                 console.log('Backend Error Received:', msg.payload.message);
@@ -102,5 +107,6 @@ export function disconnect() {
         gameStatus.set('LOBBY');
         currentQuestion.set(null);
         answersStore.set(null);
+        connectedUser = "";
     }
 }

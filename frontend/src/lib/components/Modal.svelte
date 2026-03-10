@@ -75,18 +75,46 @@
     .modal-container {
         width: 90%;
         max-width: 450px;
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.3);
         padding: 2rem;
-        color: #333;
+        color: #fff; // Default for space theme
         transform: scale(1);
         animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 2001;
+
+        &:not(.classic) {
+            background: rgba(10, 10, 30, 0.8) !important;
+            border: 4px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow:
+                0 0 0 4px #000,
+                0 0 40px rgba(0, 0, 0, 0.8) !important;
+
+            h2 {
+                font-family: var(--font-pixel);
+                font-size: 1.2rem;
+                letter-spacing: 1px;
+                text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            }
+
+            p {
+                color: var(--text-secondary);
+                font-family: var(--font-main);
+            }
+
+            .close-btn {
+                color: #fff !important;
+                &:hover {
+                    color: var(--accent) !important;
+                }
+            }
+        }
 
         &.classic {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 12px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             font-family: var(--font-main);
-            background: #fff;
+            color: #333;
             border: 1px solid #ddd;
 
             &::after {
@@ -157,15 +185,14 @@
 
             h2 {
                 margin: 0;
-                font-size: 1.5rem;
                 &.danger {
-                    color: #e21b3c;
+                    color: var(--secondary);
                 }
                 &.warning {
-                    color: #d89e00;
+                    color: var(--warning);
                 }
                 &.info {
-                    color: #1368ce;
+                    color: var(--accent);
                 }
             }
 
@@ -186,23 +213,18 @@
         .modal-body {
             margin-bottom: 2rem;
             p {
-                font-size: 1.1rem;
+                font-size: 1rem;
                 line-height: 1.6;
-                color: #555;
             }
         }
 
         .modal-footer {
             display: flex;
             justify-content: flex-end;
-            gap: 1rem;
+            gap: 1.5rem;
 
             button {
-                padding: 0.8rem 1.5rem;
-                font-size: 0.9rem;
-                min-width: 100px;
-                border: none;
-                cursor: pointer;
+                min-width: 120px;
             }
         }
     }
