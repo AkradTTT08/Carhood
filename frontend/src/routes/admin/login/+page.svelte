@@ -30,8 +30,19 @@
     }
 </script>
 
+<div class="login-bg">
+    <img src="/image/BGUSER.svg" alt="Login Background" class="bg-image" />
+</div>
+
 <div class="login-container">
-    <div class="login-box">
+    <div class="glass-card login-box">
+        <div class="logo-wrapper">
+            <img
+                src="/image/logotttspacequiz.png"
+                alt="TTT SPACE QUIZ"
+                class="system-logo"
+            />
+        </div>
         <h1>Admin Login</h1>
         <p class="subtitle">Welcome back, Captain!</p>
 
@@ -40,156 +51,143 @@
         {/if}
 
         <form on:submit|preventDefault={handleLogin}>
-            <div class="input-group">
+            <div class="form-group">
                 <label for="username">Username</label>
                 <input
                     type="text"
                     id="username"
+                    class="input-field"
                     bind:value={username}
-                    placeholder="Enter username"
+                    placeholder="ENTER USERNAME"
                     required
                 />
             </div>
 
-            <div class="input-group">
+            <div class="form-group">
                 <label for="password">Password</label>
                 <input
                     type="password"
                     id="password"
+                    class="input-field"
                     bind:value={password}
-                    placeholder="Enter password"
+                    placeholder="ENTER PASSWORD"
                     required
                 />
             </div>
 
-            <button
-                type="submit"
-                class="btn-3d {loading ? 'loading' : ''}"
-                disabled={loading}
-            >
-                {loading ? "Authenticating..." : "Login"}
+            <button type="submit" class="btn-primary" disabled={loading}>
+                {loading ? "AUTHENTICATING..." : "LOGIN"}
             </button>
         </form>
     </div>
 </div>
 
 <style lang="scss">
+    .login-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        background: #000;
+
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: auto;
+        }
+    }
+
     .login-container {
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #46178f 0%, #25074d 100%);
-        font-family: "Inter", sans-serif;
+        padding: 1rem;
+        position: relative;
+        z-index: 2;
     }
 
     .login-box {
-        background: white;
-        padding: 3rem;
-        border-radius: 20px;
-        box-shadow:
-            0 20px 40px rgba(0, 0, 0, 0.3),
-            0 10px 10px rgba(0, 0, 0, 0.2);
         width: 100%;
         max-width: 400px;
         text-align: center;
-        animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        animation: fadeIn 0.8s ease-out;
+
+        .logo-wrapper {
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .system-logo {
+            max-width: 150px;
+            height: auto;
+            filter: drop-shadow(0 0 10px rgba(0, 210, 255, 0.4));
+        }
 
         h1 {
-            margin: 0 0 0.5rem;
-            color: #333;
-            font-size: 2rem;
-            font-weight: 800;
+            margin: 0 0 1rem;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
         }
 
         .subtitle {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 2rem;
+            font-family: var(--font-pixel);
+            font-size: 0.6rem;
+            letter-spacing: 1px;
         }
     }
 
-    .input-group {
+    .form-group {
         text-align: left;
         margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
 
         label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #444;
-            font-size: 0.9rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border: 2px solid #eee;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-
-            &:focus {
-                outline: none;
-                border-color: #46178f;
-                box-shadow: 0 0 0 4px rgba(70, 23, 143, 0.1);
-            }
+            font-family: var(--font-pixel);
+            color: var(--text-secondary);
+            font-size: 0.6rem;
+            padding-left: 0.5rem;
         }
     }
 
     .error-msg {
-        background: #ffebeb;
-        color: #e21b3c;
+        background: rgba(226, 27, 60, 0.2);
+        color: #ff3e3e;
         padding: 0.8rem;
-        border-radius: 10px;
+        border: 2px solid #ff3e3e;
         margin-bottom: 1.5rem;
-        font-weight: 600;
-        font-size: 0.9rem;
-        border: 1px solid #ffd1d1;
+        font-family: var(--font-pixel);
+        font-size: 0.6rem;
+        line-height: 1.4;
     }
 
-    .btn-3d {
+    .btn-primary {
         width: 100%;
-        padding: 1rem;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: white;
-        background: #46178f;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        position: relative;
-        transition:
-            transform 0.1s,
-            background 0.3s;
-        box-shadow: 0 6px 0 #2d0f5d;
         margin-top: 1rem;
-
-        &:hover {
-            background: #551db1;
-        }
-
-        &:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #2d0f5d;
-        }
+        font-size: 0.8rem;
 
         &:disabled {
-            background: #ccc;
-            box-shadow: 0 6px 0 #999;
+            opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
-        }
-
-        &.loading {
-            opacity: 0.8;
+            top: 0 !important;
+            box-shadow: 0 6px 0 #2a0e56 !important;
         }
     }
 
-    @keyframes slideUp {
+    @keyframes fadeIn {
         from {
             opacity: 0;
-            transform: translateY(40px);
+            transform: translateY(20px);
         }
         to {
             opacity: 1;

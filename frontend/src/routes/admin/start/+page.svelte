@@ -44,8 +44,8 @@
 <div class="start-quiz-container" in:fade>
     <header class="admin-header">
         <div class="header-left">
-            <h1>Start Game</h1>
-            <p>เลือกชุดคำถามที่คุณต้องการเริ่มเล่น</p>
+            <h1>START MISSION</h1>
+            <p>SELECT A QUIZ MISSION TO INITIATE</p>
         </div>
 
         <div class="header-actions">
@@ -92,13 +92,13 @@
             </div>
         {:else}
             <div class="empty-state">
-                <p>No quizzes found matching "{searchQuery}"</p>
                 <button
                     class="btn-3d purple"
                     on:click={() => goto("/admin/editor")}
                 >
                     Create New Quiz
                 </button>
+                <p>No quizzes found matching "{searchQuery}"</p>
             </div>
         {/if}
     </div>
@@ -121,23 +121,23 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: -2rem -2rem 3rem -2rem; // Offset parent padding
-        padding: 1.5rem 2rem;
-        background: rgba(70, 23, 143, 0.4);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin: -2rem -2rem 3rem -2rem;
+        padding: 2rem;
+        background: rgba(10, 10, 30, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 4px solid var(--primary);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 
         h1 {
-            font-size: 2.2rem;
+            font-size: 1.2rem;
             margin: 0;
+            color: var(--accent);
         }
         p {
             color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin: 0;
-            opacity: 0.8;
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+            font-family: var(--font-pixel);
         }
     }
 
@@ -191,13 +191,18 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1.5rem 2rem;
-        border-radius: 20px;
+        padding: 2rem;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 4px #000;
         transition: transform 0.2s;
 
         &:hover {
-            transform: scale(1.01);
-            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow:
+                0 0 0 4px #000,
+                0 0 20px rgba(0, 210, 255, 0.3);
         }
 
         .quiz-info {
@@ -235,9 +240,15 @@
     .empty-state {
         text-align: center;
         padding: 5rem 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
         p {
             font-size: 1.2rem;
             color: var(--text-secondary);
+            margin: 0;
         }
     }
 

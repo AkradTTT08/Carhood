@@ -15,9 +15,12 @@
 </script>
 
 <aside class="sidebar glass-card">
-    <div class="logo">
-        <span class="icon">🚗</span>
-        <span class="text">CARHOOD</span>
+    <div class="logo-container">
+        <img
+            src="/image/logotttspacequiz.png"
+            alt="SPACE QUIZ"
+            class="sidebar-logo"
+        />
     </div>
 
     <nav class="menu">
@@ -55,29 +58,29 @@
         top: 0;
         z-index: 100;
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .logo-container {
             margin-bottom: 3rem;
+            display: flex;
+            justify-content: center;
             padding: 0 0.5rem;
 
-            .icon {
-                font-size: 2rem;
+            .sidebar-logo {
+                max-width: 130px;
+                height: auto;
+                filter: drop-shadow(0 0 5px rgba(0, 210, 255, 0.2));
+                animation: pulse 3s ease-in-out infinite;
             }
-            .text {
-                font-family: var(--font-display);
-                font-weight: 800;
-                font-size: 1.5rem;
-                letter-spacing: 2px;
-                background: linear-gradient(
-                    to right,
-                    #fff,
-                    var(--text-secondary)
-                );
-                -webkit-background-clip: text;
-                background-clip: text;
-                -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+            50% {
+                transform: scale(1.03);
+                opacity: 1;
             }
         }
 
@@ -127,8 +130,7 @@
             .logout-btn {
                 width: 100%;
                 padding: 1rem;
-                font-size: 0.9rem;
-                border: none;
+                font-size: 0.7rem;
             }
         }
     }

@@ -10,6 +10,7 @@ import (
 	"github.com/user/kahoot-clone/db"
 	"github.com/user/kahoot-clone/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -75,19 +76,20 @@ func SeedAdmin() {
 		Username string
 		Password string
 	}{
-		{"admin", "admin123"},
+		{"admin", "123456"},
 		{"o.akrad", "123456"},
 	}
 
 	for _, a := range adminsToSeed {
-		count, _ := db.AdminCollection.CountDocuments(ctx, bson.M{"username": a.Username})
-		if count == 0 {
-			hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(a.Password), bcrypt.DefaultCost)
-			admin := models.Admin{
-				Username: a.Username,
-				Password: string(hashedPassword),
-			}
-			db.AdminCollection.InsertOne(ctx, admin)
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(a.Password), bcrypt.DefaultCost)
+		filter := bson.M{"username": a.Username}
+		update := bson.M{
+			"$set": bson.M{
+				"username": a.Username,
+				"password": string(hashedPassword),
+			},
 		}
+		opts := options.Update().SetUpsert(true)
+		db.AdminCollection.UpdateOne(ctx, filter, update, opts)
 	}
 }

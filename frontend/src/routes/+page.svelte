@@ -6,16 +6,28 @@
   let username = "";
 
   function joinGame() {
-    if (roomID && username) {
-      connect(roomID, username);
-      goto("/game");
+    if (!roomID) {
+      alert("กรุณากรอก Game PIN");
+      return;
     }
+    if (!username) {
+      alert("กรุณากรอก NickName");
+      return;
+    }
+    connect(roomID, username);
+    goto("/game");
   }
 </script>
 
 <main class="container">
   <div class="glass-card main-card">
-    <h1 class="logo">CARHOOD TTT</h1>
+    <div class="logo-wrapper">
+      <img
+        src="/image/logotttspacequiz.png"
+        alt="TTT SPACE QUIZ"
+        class="system-logo"
+      />
+    </div>
 
     <div class="form-group">
       <input
@@ -26,11 +38,14 @@
       />
       <input
         type="text"
-        placeholder="USERNAME"
+        placeholder="NICKNAME"
         bind:value={username}
-        class="input-field"
+        class="input-field nickname-input"
       />
-      <button class="btn-primary" on:click={joinGame}>Enter</button>
+      <div class="remark">
+        <p>REMARK: MAX 12 CHARS, NO SPECIALS</p>
+      </div>
+      <button class="btn-primary" on:click={joinGame}>Enter Mission</button>
     </div>
   </div>
 </main>
@@ -51,25 +66,53 @@
     animation: fadeIn 0.8s ease-out;
   }
 
-  .logo {
-    font-size: 2.5rem;
+  .logo-wrapper {
     margin-bottom: 2rem;
-    background: linear-gradient(135deg, #fff, #aaa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: 2px;
+    display: flex;
+    justify-content: center;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .system-logo {
+    max-width: 180px;
+    height: auto;
+    filter: drop-shadow(0 0 15px rgba(0, 210, 255, 0.4));
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) scale(1.02);
+    }
+    50% {
+      transform: translateY(-12px) scale(0.98);
+    }
   }
 
   .form-group {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
-  .pin-input {
+  .pin-input,
+  .nickname-input {
     text-align: center;
     font-weight: 900;
-    font-size: 1.5rem;
+  }
+
+  .remark {
+    margin-top: -0.5rem;
+    padding: 0 0.5rem;
+
+    p {
+      color: var(--text-secondary);
+      font-size: 0.55rem;
+      font-family: var(--font-pixel);
+      line-height: 1.4;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
   }
 
   @keyframes fadeIn {

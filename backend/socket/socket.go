@@ -69,6 +69,19 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 				log.Println("Missing roomID or username")
 				continue
 			}
+
+			// Special case: If HOST joined, create the room if it doesn't exist
+			if username == "HOST" {
+				roomsMu.Lock()
+				if _, ok := Rooms[roomID]; !ok {
+					Rooms[roomID] = &Room{
+						Clients: make(map[*Client]bool),
+					}
+					log.Printf("Room %s created by HOST", roomID)
+				}
+				roomsMu.Unlock()
+			}
+
 			client.RoomID = roomID
 			client.Username = username
 			JoinRoom(client)
@@ -130,15 +143,42 @@ func LeaveRoom(client *Client) {
 
 func JoinRoom(client *Client) {
 	roomsMu.Lock()
-	if _, ok := Rooms[client.RoomID]; !ok {
-		Rooms[client.RoomID] = &Room{
-			Clients: make(map[*Client]bool),
-		}
-	}
-	room := Rooms[client.RoomID]
+	room, ok := Rooms[client.RoomID]
 	roomsMu.Unlock()
 
+	// 1. Check if room exists
+	if !ok {
+		log.Printf("Join failed: Room %s not found for client %s", client.RoomID, client.Username)
+		client.Conn.WriteJSON(Message{
+			Type: "error",
+			Payload: map[string]string{
+				"message": "Invalid Game PIN. Room not found.",
+			},
+		})
+		client.Conn.Close()
+		return
+	}
+
 	room.mu.Lock()
+	defer room.mu.Unlock()
+
+	// 2. Check for duplicate username (if not HOST)
+	if client.Username != "HOST" {
+		for c := range room.Clients {
+			if c.Username == client.Username {
+				log.Printf("Join failed: Duplicate username %s in room %s", client.Username, client.RoomID)
+				client.Conn.WriteJSON(Message{
+					Type: "error",
+					Payload: map[string]string{
+						"message": "Username already taken in this room.",
+					},
+				})
+				client.Conn.Close()
+				return
+			}
+		}
+	}
+
 	room.Clients[client] = true
 	// Collect existing players (excluding HOST)
 	var players []string
@@ -147,7 +187,6 @@ func JoinRoom(client *Client) {
 			players = append(players, c.Username)
 		}
 	}
-	room.mu.Unlock()
 
 	log.Printf("Client %s joined room %s", client.Username, client.RoomID)
 
@@ -161,12 +200,24 @@ func JoinRoom(client *Client) {
 
 	// Only broadcast player_joined if not HOST
 	if client.Username != "HOST" {
-		BroadcastToRoom(client.RoomID, Message{
+		// Broadcast to all clients in the room including the HOST
+		msg := Message{
 			Type: "player_joined",
 			Payload: map[string]string{
 				"username": client.Username,
 			},
-		})
+		}
+
+		// Since we already have the room lock, we can't call BroadcastToRoom
+		// because it will try to lock roomsMu and then room.mu (deadlock risk if other threads call handleConnection)
+		// But BroadcastToRoom locks roomsMu first then room.mu.
+		// Wait, JoinRoom is called with NO locks originally.
+		// Let's manually broadcast here while we have room.mu lock.
+		for c := range room.Clients {
+			if c != client { // Don't send back to the joiner as they got sync_players
+				c.Conn.WriteJSON(msg)
+			}
+		}
 	}
 }
 

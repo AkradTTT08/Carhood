@@ -72,6 +72,9 @@ export function connect(roomID: string, username: string) {
                 gameStatus.set('LOBBY'); // Or handle redirect in component
                 window.location.href = '/';
                 break;
+            case 'error':
+                alert(msg.payload.message);
+                break;
         }
     };
 

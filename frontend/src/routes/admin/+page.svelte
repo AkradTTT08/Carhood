@@ -147,8 +147,8 @@
 
     <header class="admin-header">
         <div class="header-left">
-            <h1>Master Quiz</h1>
-            <p>สร้างและจัดการรายการคำถามของคุณ</p>
+            <h1>MASTER QUIZ</h1>
+            <p>COMMAND CENTER: MANAGE YOUR MISSIONS</p>
         </div>
 
         <div class="header-actions">
@@ -321,24 +321,24 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: -2rem -2rem 3rem -2rem; // Offset parent padding
-        padding: 1.5rem 2rem;
-        background: rgba(70, 23, 143, 0.4);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin: -2rem -2rem 3rem -2rem;
+        padding: 2rem;
+        background: rgba(10, 10, 30, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 4px solid var(--primary);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 
         h1 {
-            font-size: 2.2rem; // Slightly more compact for sticky
+            font-size: 1.2rem;
             margin: 0;
+            color: var(--accent);
         }
 
         p {
             color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin: 0;
-            opacity: 0.8;
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+            font-family: var(--font-pixel);
         }
     }
 
@@ -394,35 +394,21 @@
 
     .quiz-card {
         display: flex;
-        flex-direction: row; // Horizontal layout
+        flex-direction: row;
         align-items: center;
         gap: 2rem;
-        padding: 1.5rem 2rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        position: relative;
-        overflow: hidden;
-
-        &::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: var(--accent);
-            opacity: 0.5;
-        }
+        padding: 2rem;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 4px #000;
+        background: var(--bg-card);
+        transition: transform 0.2s;
 
         &:hover {
-            transform: translateY(-8px);
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-            &::before {
-                opacity: 1;
-            }
+            transform: scale(1.02);
+            border-color: var(--accent);
+            box-shadow:
+                0 0 0 4px #000,
+                0 0 20px rgba(0, 210, 255, 0.3);
         }
     }
 

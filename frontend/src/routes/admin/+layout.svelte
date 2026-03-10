@@ -43,7 +43,7 @@
 <style lang="scss">
     :global(body) {
         margin: 0;
-        background: radial-gradient(circle at top left, #46178f, #250818);
+        background: #000;
         color: white;
         min-height: 100vh;
         overflow-x: hidden;
