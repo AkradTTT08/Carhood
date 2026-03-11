@@ -18,7 +18,7 @@
     <div class="logo-container">
         <img
             src="/image/logotttspacequiz.png"
-            alt="SPACE QUIZ"
+            alt="TTT SPACE QUIZ"
             class="sidebar-logo"
         />
     </div>

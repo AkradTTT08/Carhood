@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import Modal from "$lib/components/Modal.svelte";
+    import { API_URL } from "$lib/api";
 
     interface Question {
         text: string;
@@ -30,7 +31,7 @@
     async function fetchQuizzes() {
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch("http://localhost:8081/api/games", {
+            const res = await fetch(`${API_URL}/api/games`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.status === 401) goto("/admin/login");
@@ -45,7 +46,7 @@
         const token = localStorage.getItem("admin_token");
         try {
             const res = await fetch(
-                `http://localhost:8081/api/games/${id}/duplicate`,
+                `${API_URL}/api/games/${id}/duplicate`,
                 {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },

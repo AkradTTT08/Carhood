@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { fade, fly } from "svelte/transition";
+    import { API_URL } from "$lib/api";
 
     interface Quiz {
         id: string;
@@ -21,7 +22,7 @@
     async function fetchQuizzes() {
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch("http://localhost:8081/api/games", {
+            const res = await fetch(`${API_URL}/api/games`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.status === 401) goto("/admin/login");

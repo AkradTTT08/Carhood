@@ -3,6 +3,7 @@
     import { page } from "$app/stores";
     import { alertStore } from "$lib/alertStore";
     import { goto } from "$app/navigation";
+    import { API_URL } from "$lib/api";
     import Modal from "$lib/components/Modal.svelte";
 
     let showExitModal = false;
@@ -44,7 +45,7 @@
         if (id) {
             try {
                 const res = await fetch(
-                    `http://127.0.0.1:8081/api/games/${id}`,
+                    `${API_URL}/api/games/${id}`,
                     {
                         headers: { Authorization: `Bearer ${token}` },
                     },
@@ -83,7 +84,7 @@
         formData.append("file", file);
 
         try {
-            const res = await fetch("http://127.0.0.1:8081/api/upload", {
+            const res = await fetch(`${API_URL}/api/upload`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -161,8 +162,8 @@
         const token = localStorage.getItem("admin_token");
         const isUpdate = quiz.id && quiz.id !== "";
         const url = isUpdate
-            ? `http://127.0.0.1:8081/api/games/${quiz.id}`
-            : "http://127.0.0.1:8081/api/games";
+            ? `${API_URL}/api/games/${quiz.id}`
+            : `${API_URL}/api/games`;
         const method = isUpdate ? "PUT" : "POST";
 
         try {
@@ -203,7 +204,7 @@
             const token = localStorage.getItem("admin_token");
             try {
                 const res = await fetch(
-                    `http://localhost:8081/api/games/${quiz.id}`,
+                    `${API_URL}/api/games/${quiz.id}`,
                     {
                         method: "DELETE",
                         headers: { Authorization: `Bearer ${token}` },

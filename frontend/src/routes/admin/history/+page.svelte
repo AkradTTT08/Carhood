@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { fade, fly } from "svelte/transition";
+    import { API_URL } from "$lib/api";
 
     interface PlayerResult {
         username: string;
@@ -31,7 +32,7 @@
     async function fetchHistory() {
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch("http://localhost:8081/api/history", {
+            const res = await fetch(`${API_URL}/api/history`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.status === 401) goto("/admin/login");

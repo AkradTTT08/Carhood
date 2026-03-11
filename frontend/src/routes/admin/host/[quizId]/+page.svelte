@@ -7,11 +7,13 @@
         gameStatus,
         currentQuestion,
         answersStore,
+        allAnswersStore,
         connect,
         sendMessage,
     } from "$lib/socketStore";
     import { fade, fly, scale } from "svelte/transition";
     import Modal from "$lib/components/Modal.svelte";
+    import { API_URL } from "$lib/api";
 
     interface Question {
         text: string;
@@ -19,6 +21,7 @@
         correct_answer: number;
         image_url?: string;
         time_limit?: number;
+        points?: number;
     }
 
     interface Quiz {
@@ -39,6 +42,25 @@
     let answeredThisRound = new Set<string>();
     let showCancelModal = false;
 
+    // Reactively save state whenever crucial variables change
+    $: {
+        if (quiz && $gameStatus !== "LOBBY" && typeof window !== "undefined") {
+            const state = {
+                status: $gameStatus,
+                qIndex: currentQuestionIndex,
+                scores: playerScores,
+                ansReceived: answersReceived,
+                answered: Array.from(answeredThisRound),
+                timeLeft: timeLeft,
+                allAnswers: $allAnswersStore,
+            };
+            localStorage.setItem(
+                `host_state_${quiz.id}_${quiz.room_id}`,
+                JSON.stringify(state),
+            );
+        }
+    }
+
     // Initializing scores for new players reactively but safely
     $: {
         const currentPlayers = $playersStore;
@@ -52,18 +74,37 @@
         if (changed) playerScores = { ...playerScores };
     }
 
-    // Separate logic for handling incoming answers
-    $: if ($answersStore && $gameStatus === "QUESTION") {
-        const { username, answer_index } = $answersStore;
-        if (!answeredThisRound.has(username)) {
-            answeredThisRound.add(username);
-            answersReceived++;
+    // Subscription for handling incoming answers reliably
+    let answersUnsubscribe: () => void;
+    
+    function subscribeToAnswers() {
+        if (answersUnsubscribe) answersUnsubscribe();
+        
+        answersUnsubscribe = answersStore.subscribe(($answers) => {
+            if (!$answers || $gameStatus !== "QUESTION") return;
+            
+            const { username, answer_index } = $answers;
+            
+            // Allow 1s grace period after timer hits 0
+            if (!answeredThisRound.has(username) && (timeLeft > 0 || (timeLeft === 0 && !timerInterval))) {
+                answeredThisRound.add(username);
+                answersReceived++;
 
-            if (answer_index === $currentQuestion?.correct_answer) {
-                playerScores[username] = (playerScores[username] || 0) + 1000;
-                playerScores = { ...playerScores };
+                if (answer_index === $currentQuestion?.correct_answer) {
+                    const basePoints = $currentQuestion?.points || 1000;
+                    const totalTime = $currentQuestion?.time_limit || 20;
+                    
+                    // High precision: Base * 1000 + Speed Bonus (0-500)
+                    // This ensures even with 1 base point, we can rank by speed.
+                    const speedBonus = Math.round(500 * (timeLeft / totalTime));
+                    const pointsToAdd = (basePoints * 1000) + speedBonus;
+                    
+                    playerScores[username] = (playerScores[username] || 0) + pointsToAdd;
+                    // Trigger Svelte refresh
+                    playerScores = { ...playerScores };
+                }
             }
-        }
+        });
     }
 
     async function fetchQuiz() {
@@ -74,7 +115,7 @@
         const token = localStorage.getItem("admin_token");
         try {
             const res = await fetch(
-                `http://127.0.0.1:8081/api/games/${quizId}`,
+                `${API_URL}/api/games/${quizId}`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 },
@@ -87,6 +128,38 @@
 
                 // Connect to socket as HOST
                 connect(data.room_id, "HOST");
+
+                // Restore state if exists
+                if (typeof window !== "undefined") {
+                    const saved = localStorage.getItem(
+                        `host_state_${quiz.id}_${quiz.room_id}`,
+                    );
+                    if (saved && quiz) {
+                        try {
+                            const state = JSON.parse(saved);
+                            if (state.status && state.status !== "LOBBY") {
+                                currentQuestionIndex = state.qIndex;
+                                playerScores = state.scores || {};
+                                answersReceived = state.ansReceived || 0;
+                                answeredThisRound = new Set(state.answered || []);
+                                if (state.allAnswers) {
+                                    allAnswersStore.set(state.allAnswers);
+                                }
+                                gameStatus.set(state.status);
+
+                                if (state.status === "QUESTION" || state.status === "RESULT") {
+                                    currentQuestion.set(quiz.questions[currentQuestionIndex]);
+                                    if (state.status === "QUESTION") {
+                                        timeLeft = state.timeLeft || quiz.questions[currentQuestionIndex].time_limit || 20;
+                                        startTimer();
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Failed to restore state", e);
+                        }
+                    }
+                }
             } else {
                 throw new Error("Failed to fetch quiz");
             }
@@ -100,10 +173,12 @@
     // Subscribe to socket messages for answers
     onMount(() => {
         fetchQuiz();
+        subscribeToAnswers();
     });
 
     onDestroy(() => {
         clearInterval(timerInterval);
+        if (answersUnsubscribe) answersUnsubscribe();
     });
 
     function startRun() {
@@ -137,7 +212,10 @@
 
     function showResults() {
         clearInterval(timerInterval);
+        timerInterval = null; // Important for grace period check
         gameStatus.set("RESULT");
+        // Force one last score refresh to ensure ranking is final for this round
+        playerScores = { ...playerScores };
         sendMessage("show_results", { room_id: quiz?.room_id });
     }
 
@@ -163,9 +241,16 @@
     }
 
     function finishGame() {
+        const leaderboard = Object.entries(playerScores)
+            .map(([username, score]) => ({ username, score }))
+            .sort((a, b) => b.score - a.score);
+
         gameStatus.set("FINISHED");
-        sendMessage("finish_game", { room_id: quiz?.room_id });
-        saveGameHistory();
+        sendMessage("finish_game", { 
+            room_id: quiz?.room_id,
+            leaderboard: leaderboard
+        });
+        saveGameHistory(leaderboard);
     }
 
     function confirmCancel() {
@@ -173,15 +258,12 @@
         sendMessage("cancel_game", {
             room_id: quiz.room_id,
         });
+        localStorage.removeItem(`host_state_${quiz.id}_${quiz.room_id}`);
         goto("/admin/start");
     }
 
-    async function saveGameHistory() {
+    async function saveGameHistory(leaderboard: {username: string, score: number}[]) {
         if (!quiz) return;
-
-        const leaderboard = Object.entries(playerScores)
-            .map(([username, score]) => ({ username, score }))
-            .sort((a, b) => b.score - a.score);
 
         const historyData = {
             quiz_id: quiz.id,
@@ -193,7 +275,7 @@
 
         const token = localStorage.getItem("admin_token");
         try {
-            await fetch("http://localhost:8081/api/history", {
+            await fetch(`${API_URL}/api/history`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -288,35 +370,62 @@
                     </div>
                 </header>
 
-                <main class="question-main">
-                    <div class="question-card glass-card">
-                        <h1>{$currentQuestion?.text}</h1>
-                    </div>
-
-                    {#if $currentQuestion?.image_url}
-                        <div class="media-area">
-                            <img
-                                src={$currentQuestion.image_url}
-                                alt="Question"
-                            />
+                <div class="game-content-wrapper">
+                    <main class="question-main">
+                        <div class="question-card glass-card">
+                            <h1>{$currentQuestion?.text}</h1>
                         </div>
-                    {/if}
 
-                    <div class="options-grid">
-                        {#each $currentQuestion?.options || [] as opt, i}
-                            <div
-                                class="option-item opt-{i} {$gameStatus ===
-                                    'RESULT' &&
-                                i === $currentQuestion?.correct_answer
-                                    ? 'correct'
-                                    : ''}"
-                            >
-                                <span class="opt-shape"></span>
-                                <span class="opt-text">{opt}</span>
+                        {#if $currentQuestion?.image_url}
+                            <div class="media-area">
+                                <img
+                                    src={$currentQuestion.image_url}
+                                    alt="Question"
+                                />
                             </div>
-                        {/each}
-                    </div>
-                </main>
+                        {/if}
+
+                        <div class="options-grid">
+                            {#each $currentQuestion?.options || [] as opt, i}
+                                <div
+                                    class="option-item opt-{i} {$gameStatus ===
+                                        'RESULT' &&
+                                    i === $currentQuestion?.correct_answer
+                                        ? 'correct'
+                                        : ''}"
+                                >
+                                    <span class="opt-shape"></span>
+                                    <span class="opt-text">{opt}</span>
+                                    {#if $gameStatus === "RESULT"}
+                                        <span class="opt-count" in:scale>
+                                            👤 {Object.values(
+                                                $allAnswersStore,
+                                            ).filter((v) => v === i).length}
+                                        </span>
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
+                    </main>
+
+                    <aside class="live-ranking-sidebar glass-card">
+                        <h3>Top 10 Live Ranking 🏆</h3>
+                        <div class="ranking-list">
+                            {#each Object.entries(playerScores)
+                                .filter(([username]) => $playersStore.includes(username))
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 10) as [username, score], i}
+                                <div class="rank-item">
+                                    <span class="rank-num">#{i + 1}</span>
+                                    <span class="rank-name">{username}</span>
+                                    <span class="rank-score">
+                                        {Math.floor(score / 1000)}
+                                    </span>
+                                </div>
+                            {/each}
+                        </div>
+                    </aside>
+                </div>
 
                 {#if $gameStatus === "RESULT"}
                     <div class="result-actions" in:fly={{ y: 50 }}>
@@ -339,7 +448,9 @@
                 <div class="leaderboard-section">
                     <h2>Final Ranking 🏆</h2>
                     <div class="leaderboard-list">
-                        {#each Object.entries(playerScores).sort((a, b) => b[1] - a[1]) as [username, score], i}
+                        {#each Object.entries(playerScores)
+                            .filter(([username]) => $playersStore.includes(username))
+                            .sort((a, b) => b[1] - a[1]) as [username, score], i}
                             <div
                                 class="player-rank glass-card"
                                 in:fly={{ x: -20, delay: i * 100 }}
@@ -349,7 +460,7 @@
                                     <span class="player-name">{username}</span>
                                 </div>
                                 <div class="score">
-                                    {score} <span class="pts">pts</span>
+                                    {Math.floor(score / 1000)} <span class="pts">pts</span>
                                 </div>
                             </div>
                         {/each}
@@ -359,8 +470,13 @@
                 <div class="actions">
                     <button
                         class="btn-3d purple"
-                        on:click={() => goto("/admin")}
-                        >Back to Dashboard</button
+                        on:click={() => {
+                            if (quiz)
+                                localStorage.removeItem(
+                                    `host_state_${quiz.id}_${quiz.room_id}`,
+                                );
+                            goto("/admin");
+                        }}>Back to Dashboard</button
                     >
                     <button
                         class="btn-3d blue"
@@ -540,49 +656,140 @@
         }
     }
 
-    .question-main {
-        flex: 1;
+    .game-content-wrapper {
+        display: flex;
+        gap: 1rem;
+        width: 100%;
+        padding: 0 2rem;
+        height: calc(100vh - 200px);
+    }
+    .live-ranking-sidebar {
+        width: 350px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 20px;
+        padding: 2rem;
         display: flex;
         flex-direction: column;
-        gap: 2rem;
-        max-width: 1100px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        h3 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+        .ranking-list {
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            padding-right: 0.5rem;
+        }
+        .rank-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            font-weight: bold;
+            .rank-num {
+                opacity: 0.5;
+                width: 30px;
+            }
+            .rank-name {
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                margin: 0 1rem;
+            }
+            .rank-score {
+                color: var(--accent);
+            }
+        }
+    }
+    .question-main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        max-width: 1500px;
         margin: 0 auto;
         width: 100%;
 
         .question-card {
             background: white;
             color: black;
-            padding: 2.5rem;
+            padding: 1.5rem 2rem;
             text-align: center;
             border-radius: 20px;
+            flex-shrink: 0;
             h1 {
                 margin: 0;
-                font-size: 2.2rem;
+                font-size: 1.8rem;
                 line-height: 1.2;
             }
         }
 
+        .media-area {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            img {
+                max-width: 100%;
+                max-height: 100%;
+                height: 100%;
+                width: auto;
+                object-fit: contain;
+                border-radius: 15px;
+            }
+        }
         .options-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 0.8rem;
             margin-top: auto;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .option-item {
-            padding: 1.5rem 2rem;
+            padding: 0.8rem 1.5rem;
             border-radius: 12px;
             display: flex;
             align-items: center;
-            gap: 1.5rem;
-            font-size: 1.4rem;
+            gap: 1.2rem;
+            font-size: 1.2rem;
             font-weight: 700;
             opacity: 0.8;
+            position: relative;
             &.correct {
                 opacity: 1;
                 border: 4px solid white;
                 box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            }
+            .opt-shape {
+                width: 25px;
+                height: 25px;
+                border: 2px solid white;
+                flex-shrink: 0;
+            }
+            .opt-count {
+                margin-left: auto;
+                background: rgba(0, 0, 0, 0.4);
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-size: 1.2rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
             }
         }
 

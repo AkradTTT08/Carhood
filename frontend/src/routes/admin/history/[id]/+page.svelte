@@ -3,6 +3,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { fade, fly, scale } from "svelte/transition";
+    import { API_URL } from "$lib/api";
 
     interface PlayerResult {
         username: string;
@@ -27,7 +28,7 @@
         const id = $page.params.id;
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch(`http://localhost:8081/api/history/${id}`, {
+            const res = await fetch(`${API_URL}/api/history/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.status === 401) goto("/admin/login");
@@ -54,6 +55,10 @@
     onMount(fetchDetail);
 </script>
 
+<div class="page-bg">
+    <img src="/image/BGUSER.svg" alt="Background" class="bg-image" />
+</div>
+
 <div class="detail-container" in:fade>
     <header class="admin-header">
         <div class="header-left">
@@ -61,6 +66,7 @@
                 ⬅️ Back to History
             </button>
             <h1>Game Details</h1>
+            <p>SESSION RESULTS & LEADERBOARD</p>
         </div>
     </header>
 
@@ -127,9 +133,28 @@
 </div>
 
 <style lang="scss">
+    .page-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: #000;
+
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: auto;
+        }
+    }
+
     .detail-container {
         width: 100%;
         box-sizing: border-box;
+        position: relative;
+        z-index: 1;
     }
 
     .admin-header {
@@ -140,12 +165,11 @@
         justify-content: space-between;
         align-items: center;
         margin: -2rem -2rem 3rem -2rem;
-        padding: 1.5rem 2rem;
-        background: rgba(70, 23, 143, 0.4);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        padding: 2rem;
+        background: rgba(10, 10, 30, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 4px solid var(--primary);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 
         .header-left {
             display: flex;
@@ -153,19 +177,29 @@
             gap: 2rem;
         }
         .back-link {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
             &:hover {
-                color: white;
+                background: rgba(255, 255, 255, 0.1);
+                border-color: var(--accent);
+                transform: translateX(-5px);
             }
         }
         h1 {
-            font-size: 2rem;
+            font-size: 1.2rem;
             margin: 0;
+            color: var(--accent);
+            line-height: 1.6;
         }
     }
 

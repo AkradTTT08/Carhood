@@ -70,15 +70,14 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			// Special case: If HOST joined, create the room if it doesn't exist
+			// Special case: If HOST joined, create or reset the room
 			if username == "HOST" {
 				roomsMu.Lock()
-				if _, ok := Rooms[roomID]; !ok {
-					Rooms[roomID] = &Room{
-						Clients: make(map[*Client]bool),
-					}
-					log.Printf("Room %s created by HOST", roomID)
+				// Always create a new Room object for the HOST to ensure a clean state
+				Rooms[roomID] = &Room{
+					Clients: make(map[*Client]bool),
 				}
+				log.Printf("Room %s created/reset by HOST", roomID)
 				roomsMu.Unlock()
 			}
 

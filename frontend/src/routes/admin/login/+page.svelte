@@ -1,5 +1,7 @@
 <script>
     import { onMount } from "svelte";
+    import { goto } from "$app/navigation";
+    import { API_URL } from "$lib/api";
 
     let username = "";
     let password = "";
@@ -10,7 +12,7 @@
         loading = true;
         error = "";
         try {
-            const res = await fetch("http://localhost:8081/api/login", {
+            const res = await fetch(`${API_URL}/api/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),

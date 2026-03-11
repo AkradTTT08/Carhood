@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { alertStore } from './alertStore';
+import { WS_URL } from './api';
 
 export type GameState = 'IDLE' | 'LOBBY' | 'QUESTION' | 'RESULT' | 'FINISHED';
 
@@ -9,6 +10,7 @@ export interface Question {
     correct_answer: number;
     image_url?: string;
     time_limit?: number;
+    points?: number;
 }
 
 export const socketStore = writable<WebSocket | null>(null);
@@ -17,14 +19,26 @@ export const currentUser = writable<string>("");
 export const gameStatus = writable<GameState>('IDLE');
 export const currentQuestion = writable<Question | null>(null);
 export const answersStore = writable<{ username: string, answer_index: number } | null>(null);
+export const allAnswersStore = writable<Record<string, number>>({});
+export const questionProgressStore = writable<{ current: number, total: number }>({ current: 0, total: 0 });
+export const leaderboardStore = writable<{username: string, score: number}[]>([]);
 
 let socket: WebSocket | null = null;
 let connectedUser: string = "";
 
 export function connect(roomID: string, username: string) {
+    // Reset all stores to initial state
+    playersStore.set([]);
+    gameStatus.set('IDLE');
+    currentQuestion.set(null);
+    answersStore.set(null);
+    allAnswersStore.set({});
+    questionProgressStore.set({ current: 0, total: 0 });
+    leaderboardStore.set([]);
+
     currentUser.set(username);
     connectedUser = username;
-    socket = new WebSocket('ws://127.0.0.1:8081/ws');
+    socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
         if (socket) {
@@ -59,11 +73,19 @@ export function connect(roomID: string, username: string) {
             case 'next_question':
                 gameStatus.set('QUESTION');
                 currentQuestion.set(msg.payload.question);
+                if (msg.payload.progress) {
+                    questionProgressStore.set(msg.payload.progress);
+                }
+                allAnswersStore.set({}); // Reset answers for the new round
+                answersStore.set(null);
                 break;
             case 'show_results':
                 gameStatus.set('RESULT');
                 break;
             case 'finish_game':
+                if (msg.payload.leaderboard) {
+                    leaderboardStore.set(msg.payload.leaderboard);
+                }
                 gameStatus.set('FINISHED');
                 break;
             case 'player_left':
@@ -71,6 +93,10 @@ export function connect(roomID: string, username: string) {
                 break;
             case 'submit_answer':
                 answersStore.set(msg.payload);
+                allAnswersStore.update(answers => {
+                    answers[msg.payload.username] = msg.payload.answer_index;
+                    return answers;
+                });
                 break;
             case 'cancel_game':
                 gameStatus.set('LOBBY');
@@ -107,6 +133,8 @@ export function disconnect() {
         gameStatus.set('LOBBY');
         currentQuestion.set(null);
         answersStore.set(null);
+        allAnswersStore.set({});
+        questionProgressStore.set({ current: 0, total: 0 });
         connectedUser = "";
     }
 }
