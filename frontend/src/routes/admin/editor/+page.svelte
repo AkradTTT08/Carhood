@@ -3,7 +3,7 @@
     import { page } from "$app/stores";
     import { alertStore } from "$lib/alertStore";
     import { goto } from "$app/navigation";
-    import { API_URL } from "$lib/api";
+    import { API_URL, resolveImageUrl } from "$lib/api";
     import Modal from "$lib/components/Modal.svelte";
 
     let showExitModal = false;
@@ -44,12 +44,9 @@
         const id = $page.url.searchParams.get("id");
         if (id) {
             try {
-                const res = await fetch(
-                    `${API_URL}/api/games/${id}`,
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    },
-                );
+                const res = await fetch(`${API_URL}/api/games/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
                 if (res.ok) {
                     const data = await res.json();
                     // Migrate old data if necessary
@@ -203,13 +200,10 @@
         if (quiz.id) {
             const token = localStorage.getItem("admin_token");
             try {
-                const res = await fetch(
-                    `${API_URL}/api/games/${quiz.id}`,
-                    {
-                        method: "DELETE",
-                        headers: { Authorization: `Bearer ${token}` },
-                    },
-                );
+                const res = await fetch(`${API_URL}/api/games/${quiz.id}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
                 if (res.ok) {
                     goto("/admin");
                 }
@@ -358,7 +352,7 @@
                 >
                     {#if currentQuestion.image_url}
                         <img
-                            src={currentQuestion.image_url}
+                            src={resolveImageUrl(currentQuestion.image_url)}
                             alt="Question media"
                             class="uploaded-img"
                         />

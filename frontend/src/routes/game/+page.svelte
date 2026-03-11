@@ -11,6 +11,7 @@
         questionProgressStore,
         leaderboardStore,
     } from "$lib/socketStore";
+    import { API_URL, resolveImageUrl } from "$lib/api";
     import { fade, fly, scale } from "svelte/transition";
     import { onDestroy } from "svelte";
 
@@ -149,7 +150,9 @@
                     {#if $currentQuestion?.image_url}
                         <div class="media-area">
                             <img
-                                src={$currentQuestion.image_url}
+                                src={resolveImageUrl(
+                                    $currentQuestion.image_url,
+                                )}
                                 alt="Question Media"
                                 class="question-image"
                             />

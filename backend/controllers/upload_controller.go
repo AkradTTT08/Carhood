@@ -33,7 +33,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// Return the relative URL
-	imageURL := fmt.Sprintf("http://localhost:8081/uploads/%s", newFileName)
+	imageURL := fmt.Sprintf("/uploads/%s", newFileName)
 	c.JSON(http.StatusOK, gin.H{
 		"message":   "File uploaded successfully",
 		"image_url": imageURL,

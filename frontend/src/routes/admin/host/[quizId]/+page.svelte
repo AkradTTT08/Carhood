@@ -13,7 +13,7 @@
     } from "$lib/socketStore";
     import { fade, fly, scale } from "svelte/transition";
     import Modal from "$lib/components/Modal.svelte";
-    import { API_URL } from "$lib/api";
+    import { API_URL, resolveImageUrl } from "$lib/api";
 
     interface Question {
         text: string;
@@ -411,7 +411,9 @@
                         {#if $currentQuestion?.image_url}
                             <div class="media-area">
                                 <img
-                                    src={$currentQuestion.image_url}
+                                    src={resolveImageUrl(
+                                        $currentQuestion.image_url,
+                                    )}
                                     alt="Question"
                                 />
                             </div>
