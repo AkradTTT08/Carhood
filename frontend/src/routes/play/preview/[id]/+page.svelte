@@ -3,7 +3,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { fade, fly, scale } from "svelte/transition";
-    import { API_URL } from "$lib/api";
+    import { API_URL, resolveImageUrl } from "$lib/api";
 
     interface Question {
         text: string;
@@ -148,7 +148,7 @@
                     {#if currentQuestion.image_url}
                         <div class="media-center">
                             <img
-                                src={currentQuestion.image_url}
+                                src={resolveImageUrl(currentQuestion.image_url)}
                                 alt="Question media"
                                 in:scale
                             />
