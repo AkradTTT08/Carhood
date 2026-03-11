@@ -45,13 +45,10 @@
     async function duplicateQuiz(id: string) {
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch(
-                `${API_URL}/api/games/${id}/duplicate`,
-                {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                },
-            );
+            const res = await fetch(`${API_URL}/api/games/${id}/duplicate`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
             if (res.ok) await fetchQuizzes();
         } catch (e) {
             console.error("Duplicate error:", e);
@@ -68,13 +65,10 @@
         if (!quizToDelete) return;
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch(
-                `http://localhost:8081/api/games/${quizToDelete}`,
-                {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${token}` },
-                },
-            );
+            const res = await fetch(`${API_URL}/api/games/${quizToDelete}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
             if (res.ok) {
                 quizzes = quizzes.filter((q) => q.id !== quizToDelete);
                 showDeleteModal = false;

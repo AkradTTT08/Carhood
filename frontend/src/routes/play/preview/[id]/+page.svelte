@@ -3,6 +3,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { fade, fly, scale } from "svelte/transition";
+    import { API_URL } from "$lib/api";
 
     interface Question {
         text: string;
@@ -36,14 +37,11 @@
             const id = $page.params.id;
             const token = localStorage.getItem("admin_token");
             try {
-                const res = await fetch(
-                    `http://localhost:8081/api/games/${id}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
+                const res = await fetch(`${API_URL}/api/games/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
                     },
-                );
+                });
                 if (!res.ok) throw new Error("Failed to fetch quiz");
                 const data = (await res.json()) as Quiz;
                 quiz = data;
