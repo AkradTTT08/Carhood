@@ -122,7 +122,8 @@
                                 >
                             </div>
                             <div class="score">
-                                {player.score} <span class="pts">pts</span>
+                                {Math.floor(player.score / 1000)}
+                                <span class="pts">pts</span>
                             </div>
                         </div>
                     {/each}

@@ -73,6 +73,19 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			// Special case: If HOST joined, create or reset the room
 			if username == "HOST" {
 				roomsMu.Lock()
+				// Send a cancel_game to old clients so they redirect home
+				if existingRoom, exists := Rooms[roomID]; exists {
+					existingRoom.mu.Lock()
+					for c := range existingRoom.Clients {
+						if c.Username != "HOST" {
+							c.Conn.WriteJSON(Message{
+								Type: "cancel_game",
+							})
+							c.Conn.Close()
+						}
+					}
+					existingRoom.mu.Unlock()
+				}
 				// Always create a new Room object for the HOST to ensure a clean state
 				Rooms[roomID] = &Room{
 					Clients: make(map[*Client]bool),

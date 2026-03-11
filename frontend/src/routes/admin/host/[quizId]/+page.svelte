@@ -38,6 +38,7 @@
     let timerInterval: any;
     let currentQuestionIndex = -1; // -1 means Lobby
     let playerScores: Record<string, number> = {};
+    let pendingScores: Record<string, number> = {};
     let answersReceived = 0;
     let answeredThisRound = new Set<string>();
     let showCancelModal = false;
@@ -76,32 +77,34 @@
 
     // Subscription for handling incoming answers reliably
     let answersUnsubscribe: () => void;
-    
+
     function subscribeToAnswers() {
         if (answersUnsubscribe) answersUnsubscribe();
-        
+
         answersUnsubscribe = answersStore.subscribe(($answers) => {
             if (!$answers || $gameStatus !== "QUESTION") return;
-            
+
             const { username, answer_index } = $answers;
-            
+
             // Allow 1s grace period after timer hits 0
-            if (!answeredThisRound.has(username) && (timeLeft > 0 || (timeLeft === 0 && !timerInterval))) {
+            if (
+                !answeredThisRound.has(username) &&
+                (timeLeft > 0 || (timeLeft === 0 && !timerInterval))
+            ) {
                 answeredThisRound.add(username);
                 answersReceived++;
 
                 if (answer_index === $currentQuestion?.correct_answer) {
                     const basePoints = $currentQuestion?.points || 1000;
                     const totalTime = $currentQuestion?.time_limit || 20;
-                    
+
                     // High precision: Base * 1000 + Speed Bonus (0-500)
                     // This ensures even with 1 base point, we can rank by speed.
                     const speedBonus = Math.round(500 * (timeLeft / totalTime));
-                    const pointsToAdd = (basePoints * 1000) + speedBonus;
-                    
-                    playerScores[username] = (playerScores[username] || 0) + pointsToAdd;
-                    // Trigger Svelte refresh
-                    playerScores = { ...playerScores };
+                    const pointsToAdd = basePoints * 1000 + speedBonus;
+
+                    pendingScores[username] =
+                        (pendingScores[username] || 0) + pointsToAdd;
                 }
             }
         });
@@ -114,12 +117,9 @@
 
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch(
-                `${API_URL}/api/games/${quizId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                },
-            );
+            const res = await fetch(`${API_URL}/api/games/${quizId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             if (res.ok) {
                 const data = await res.json();
                 // Override the template's room_id with our dynamic session PIN
@@ -141,16 +141,27 @@
                                 currentQuestionIndex = state.qIndex;
                                 playerScores = state.scores || {};
                                 answersReceived = state.ansReceived || 0;
-                                answeredThisRound = new Set(state.answered || []);
+                                answeredThisRound = new Set(
+                                    state.answered || [],
+                                );
                                 if (state.allAnswers) {
                                     allAnswersStore.set(state.allAnswers);
                                 }
                                 gameStatus.set(state.status);
 
-                                if (state.status === "QUESTION" || state.status === "RESULT") {
-                                    currentQuestion.set(quiz.questions[currentQuestionIndex]);
+                                if (
+                                    state.status === "QUESTION" ||
+                                    state.status === "RESULT"
+                                ) {
+                                    currentQuestion.set(
+                                        quiz.questions[currentQuestionIndex],
+                                    );
                                     if (state.status === "QUESTION") {
-                                        timeLeft = state.timeLeft || quiz.questions[currentQuestionIndex].time_limit || 20;
+                                        timeLeft =
+                                            state.timeLeft ||
+                                            quiz.questions[currentQuestionIndex]
+                                                .time_limit ||
+                                            20;
                                         startTimer();
                                     }
                                 }
@@ -186,6 +197,7 @@
         currentQuestionIndex = 0;
         answersReceived = 0;
         answeredThisRound = new Set();
+        pendingScores = {};
         const q = quiz.questions[currentQuestionIndex];
         gameStatus.set("QUESTION");
         currentQuestion.set(q);
@@ -194,6 +206,10 @@
         sendMessage("start_game", {
             room_id: quiz.room_id,
             question: q,
+            progress: {
+                current: currentQuestionIndex + 1,
+                total: quiz.questions.length,
+            },
         });
 
         startTimer();
@@ -214,8 +230,16 @@
         clearInterval(timerInterval);
         timerInterval = null; // Important for grace period check
         gameStatus.set("RESULT");
-        // Force one last score refresh to ensure ranking is final for this round
+
+        // Commit pending scores to the main scores board
+        Object.entries(pendingScores).forEach(([username, points]) => {
+            playerScores[username] = (playerScores[username] || 0) + points;
+        });
+
+        // Trigger Svelte refresh and clear buffer
         playerScores = { ...playerScores };
+        pendingScores = {};
+
         sendMessage("show_results", { room_id: quiz?.room_id });
     }
 
@@ -229,10 +253,15 @@
             timeLeft = q.time_limit || 20;
             answersReceived = 0;
             answeredThisRound = new Set();
+            pendingScores = {};
 
             sendMessage("next_question", {
                 room_id: quiz.room_id,
                 question: q,
+                progress: {
+                    current: currentQuestionIndex + 1,
+                    total: quiz.questions.length,
+                },
             });
             startTimer();
         } else {
@@ -242,13 +271,14 @@
 
     function finishGame() {
         const leaderboard = Object.entries(playerScores)
+            .filter(([username]) => $playersStore.includes(username))
             .map(([username, score]) => ({ username, score }))
             .sort((a, b) => b.score - a.score);
 
         gameStatus.set("FINISHED");
-        sendMessage("finish_game", { 
+        sendMessage("finish_game", {
             room_id: quiz?.room_id,
-            leaderboard: leaderboard
+            leaderboard: leaderboard,
         });
         saveGameHistory(leaderboard);
     }
@@ -262,7 +292,9 @@
         goto("/admin/start");
     }
 
-    async function saveGameHistory(leaderboard: {username: string, score: number}[]) {
+    async function saveGameHistory(
+        leaderboard: { username: string; score: number }[],
+    ) {
         if (!quiz) return;
 
         const historyData = {
@@ -392,6 +424,9 @@
                                         'RESULT' &&
                                     i === $currentQuestion?.correct_answer
                                         ? 'correct'
+                                        : ''} {$gameStatus === 'RESULT' &&
+                                    i !== $currentQuestion?.correct_answer
+                                        ? 'dimmed'
                                         : ''}"
                                 >
                                     <span class="opt-shape"></span>
@@ -408,37 +443,41 @@
                         </div>
                     </main>
 
-                    <aside class="live-ranking-sidebar glass-card">
-                        <h3>Top 10 Live Ranking 🏆</h3>
-                        <div class="ranking-list">
-                            {#each Object.entries(playerScores)
-                                .filter(([username]) => $playersStore.includes(username))
-                                .sort((a, b) => b[1] - a[1])
-                                .slice(0, 10) as [username, score], i}
-                                <div class="rank-item">
-                                    <span class="rank-num">#{i + 1}</span>
-                                    <span class="rank-name">{username}</span>
-                                    <span class="rank-score">
-                                        {Math.floor(score / 1000)}
-                                    </span>
-                                </div>
-                            {/each}
-                        </div>
-                    </aside>
-                </div>
+                    <div class="right-column">
+                        <aside class="live-ranking-sidebar glass-card">
+                            <h3>Top 10 Live Ranking 🏆</h3>
+                            <div class="ranking-list">
+                                {#each Object.entries(playerScores)
+                                    .filter( ([username]) => $playersStore.includes(username), )
+                                    .sort((a, b) => b[1] - a[1])
+                                    .slice(0, 10) as [username, score], i}
+                                    <div class="rank-item">
+                                        <span class="rank-num">#{i + 1}</span>
+                                        <span class="rank-name">{username}</span
+                                        >
+                                        <span class="rank-score">
+                                            {Math.floor(score / 1000)}
+                                        </span>
+                                    </div>
+                                {/each}
+                            </div>
+                        </aside>
 
-                {#if $gameStatus === "RESULT"}
-                    <div class="result-actions" in:fly={{ y: 50 }}>
-                        <button
-                            class="btn-3d purple next-btn"
-                            on:click={nextQuestion}
-                        >
-                            {currentQuestionIndex + 1 < quiz.questions.length
-                                ? "Next Question ➡️"
-                                : "Show Podium 🏆"}
-                        </button>
+                        {#if $gameStatus === "RESULT"}
+                            <div class="result-actions" in:fly={{ y: 20 }}>
+                                <button
+                                    class="btn-3d purple next-btn"
+                                    on:click={nextQuestion}
+                                >
+                                    {currentQuestionIndex + 1 <
+                                    quiz.questions.length
+                                        ? "Next Question ➡️"
+                                        : "Show Podium 🏆"}
+                                </button>
+                            </div>
+                        {/if}
                     </div>
-                {/if}
+                </div>
             </div>
         {:else if $gameStatus === "FINISHED"}
             <!-- FINISHED / RANKING VIEW -->
@@ -449,7 +488,7 @@
                     <h2>Final Ranking 🏆</h2>
                     <div class="leaderboard-list">
                         {#each Object.entries(playerScores)
-                            .filter(([username]) => $playersStore.includes(username))
+                            .filter( ([username]) => $playersStore.includes(username), )
                             .sort((a, b) => b[1] - a[1]) as [username, score], i}
                             <div
                                 class="player-rank glass-card"
@@ -460,7 +499,8 @@
                                     <span class="player-name">{username}</span>
                                 </div>
                                 <div class="score">
-                                    {Math.floor(score / 1000)} <span class="pts">pts</span>
+                                    {Math.floor(score / 1000)}
+                                    <span class="pts">pts</span>
                                 </div>
                             </div>
                         {/each}
@@ -616,6 +656,8 @@
         display: flex;
         flex-direction: column;
         padding: 2rem;
+        padding-right: 420px;
+        position: relative;
     }
 
     .game-header {
@@ -660,11 +702,25 @@
         display: flex;
         gap: 1rem;
         width: 100%;
-        padding: 0 2rem;
-        height: calc(100vh - 200px);
+        padding: 0;
+        height: calc(100vh - 180px);
     }
+
+    .right-column {
+        width: 380px;
+        min-width: 380px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        height: calc(100vh - 3rem);
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        bottom: 1.5rem;
+    }
+
     .live-ranking-sidebar {
-        width: 350px;
+        flex: 1;
         background: rgba(0, 0, 0, 0.4);
         border-radius: 20px;
         padding: 2rem;
@@ -717,9 +773,8 @@
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
-        max-width: 1500px;
-        margin: 0 auto;
         width: 100%;
+        overflow: hidden;
 
         .question-card {
             background: white;
@@ -775,6 +830,10 @@
                 border: 4px solid white;
                 box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
             }
+            &.dimmed {
+                filter: grayscale(100%);
+                opacity: 0.4;
+            }
             .opt-shape {
                 width: 25px;
                 height: 25px;
@@ -808,9 +867,18 @@
     }
 
     .result-actions {
-        position: absolute;
-        bottom: 3rem;
-        right: 3rem;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 0;
+        margin-top: 1.5rem;
+
+        .next-btn {
+            width: 100%;
+            padding: 1.5rem;
+            font-size: 1.2rem;
+            border-radius: 10px;
+        }
     }
 
     .finished-view {

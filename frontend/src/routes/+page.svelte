@@ -66,7 +66,7 @@
         <p>REMARK: MAX 12 CHARS, NO SPECIALS</p>
       </div>
       <button class="btn-primary" on:click={joinGame}>Enter Mission</button>
-      
+
       {#if lastLeaderboard && lastLeaderboard.length > 0}
         <button class="btn-secondary" on:click={() => (showPodium = true)}>
           Last Game Podium 🏅
@@ -79,7 +79,9 @@
     <div class="podium-overlay" transition:fade>
       <div class="podium-modal glass-card" in:fly={{ y: 20 }}>
         <header class="podium-header">
-          <button class="close-btn" on:click={() => (showPodium = false)}>×</button>
+          <button class="close-btn" on:click={() => (showPodium = false)}
+            >×</button
+          >
           <h2>Last Game Results</h2>
         </header>
 
@@ -93,7 +95,7 @@
                 <span class="user-name">{entry.username}</span>
               </div>
               <div class="user-score">
-                {entry.score} <span>pts</span>
+                {Math.floor(entry.score / 1000)} <span>pts</span>
               </div>
             </div>
           {/each}
@@ -296,9 +298,21 @@
       font-weight: 900;
       font-size: 1.5rem;
 
-      &.top-1 { background: #ffd700; color: #000; box-shadow: 0 0 15px #ffd700; }
-      &.top-2 { background: #c0c0c0; color: #000; box-shadow: 0 0 10px #c0c0c0; }
-      &.top-3 { background: #cd7f32; color: #351c1c; box-shadow: 0 0 10px #cd7f32; }
+      &.top-1 {
+        background: #ffd700;
+        color: #000;
+        box-shadow: 0 0 15px #ffd700;
+      }
+      &.top-2 {
+        background: #c0c0c0;
+        color: #000;
+        box-shadow: 0 0 10px #c0c0c0;
+      }
+      &.top-3 {
+        background: #cd7f32;
+        color: #351c1c;
+        box-shadow: 0 0 10px #cd7f32;
+      }
     }
 
     .user-info {
@@ -313,12 +327,22 @@
       font-size: 2rem;
       font-weight: 900;
       color: var(--accent);
-      span { font-size: 1rem; opacity: 0.6; color: #fff; }
+      span {
+        font-size: 1rem;
+        opacity: 0.6;
+        color: #fff;
+      }
     }
   }
 
   @keyframes scaleIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 </style>

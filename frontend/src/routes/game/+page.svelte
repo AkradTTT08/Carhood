@@ -21,7 +21,10 @@
     let showPodium = false;
 
     $: if ($leaderboardStore && $leaderboardStore.length > 0) {
-        localStorage.setItem("last_leaderboard", JSON.stringify($leaderboardStore));
+        localStorage.setItem(
+            "last_leaderboard",
+            JSON.stringify($leaderboardStore),
+        );
     }
 
     $: if ($gameStatus === "QUESTION" && $currentQuestion) {
@@ -68,6 +71,9 @@
         disconnect();
         window.location.href = "/";
     }
+
+    const shapes = ["triangle", "diamond", "circle", "square"];
+    const colors = ["red", "blue", "yellow", "green"];
 </script>
 
 <div class="player-container" in:fade>
@@ -110,21 +116,38 @@
         <div class="game-layout">
             <div class="question-view">
                 <header class="q-header">
-                    <div class="progress-indicator">
-                        {$questionProgressStore.current} / {$questionProgressStore.total}
+                    <div class="header-left">
+                        <div class="progress-indicator">
+                            Question {$questionProgressStore.current} of {$questionProgressStore.total}
+                        </div>
                     </div>
-                    <div
-                        class="timer {timeLeft <= 5 && timeLeft > 0
-                            ? 'danger-pulse'
-                            : ''}"
-                    >
-                        {timeLeft}
+
+                    <div class="header-center">
+                        <div
+                            class="timer {timeLeft <= 5 && timeLeft > 0
+                                ? 'danger-pulse'
+                                : ''}"
+                        >
+                            {timeLeft}
+                        </div>
                     </div>
-                    <h2 class="question-text">
-                        {$currentQuestion?.text || "Choose wisely..."}
-                    </h2>
+
+                    <div class="header-right">
+                        <div class="player-info">
+                            <span class="avatar">👤</span>
+                            <span class="username">{$currentUser}</span>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="question-content">
+                    <div class="question-card glass-card">
+                        <h2 class="question-text">
+                            {$currentQuestion?.text || "Choose wisely..."}
+                        </h2>
+                    </div>
                     {#if $currentQuestion?.image_url}
-                        <div class="question-image-container">
+                        <div class="media-area">
                             <img
                                 src={$currentQuestion.image_url}
                                 alt="Question Media"
@@ -132,18 +155,23 @@
                             />
                         </div>
                     {/if}
-                </header>
+                </div>
 
                 <div class="options-grid">
                     {#each $currentQuestion?.options || [] as opt, i}
                         <button
-                            class="option-btn opt-{i} {selectedOption === i
-                                ? 'selected'
-                                : ''}"
+                            class="ans-pill {colors[i]}"
+                            class:selected={selectedOption === i}
+                            class:dimmed={submitted && selectedOption !== i}
                             on:click={() => submitAnswer(i)}
+                            disabled={submitted}
+                            in:fly={{ y: 20, delay: i * 100 }}
                         >
-                            <span class="shape"></span>
+                            <div class="shape {shapes[i]}"></div>
                             <span class="text">{opt}</span>
+                            {#if submitted && selectedOption === i}
+                                <div class="check">✔</div>
+                            {/if}
                         </button>
                     {/each}
                 </div>
@@ -192,12 +220,9 @@
                     <div class="finish-icon">🏆</div>
                     <h1>Game Over! 🏁</h1>
                     <p>Great job participating in the quiz!</p>
-                    
+
                     <div class="finish-actions">
-                        <button
-                            class="btn-3d purple"
-                            on:click={leaveGame}
-                        >
+                        <button class="btn-3d purple" on:click={leaveGame}>
                             Play Again 🎮
                         </button>
                         <button
@@ -211,28 +236,37 @@
             {:else}
                 <div class="podium-view" in:fly={{ y: 20 }}>
                     <header class="podium-header-scaled">
-                        <button class="back-link-scaled" on:click={() => showPodium = false}>
-                            ← Back
-                        </button>
                         <h1>Game Finished! 🏁</h1>
                         <h2>Final Ranking 🏆</h2>
                     </header>
 
                     <div class="podium-list">
                         {#each $leaderboardStore as entry, i}
-                            <div class="podium-item {entry.username === $currentUser ? 'is-self' : ''}" 
-                                 in:fly={{ x: -20, delay: i * 50 }}>
-                                <div class="rank-badge {i < 3 ? 'top-' + (i + 1) : ''}">
+                            <div
+                                class="podium-item {entry.username ===
+                                $currentUser
+                                    ? 'is-self'
+                                    : ''}"
+                                in:fly={{ x: -20, delay: i * 50 }}
+                            >
+                                <div
+                                    class="rank-badge {i < 3
+                                        ? 'top-' + (i + 1)
+                                        : ''}"
+                                >
                                     {i + 1}
                                 </div>
                                 <div class="user-info">
-                                    <span class="user-name">{entry.username}</span>
+                                    <span class="user-name"
+                                        >{entry.username}</span
+                                    >
                                     {#if entry.username === $currentUser}
                                         <span class="self-label">(You)</span>
                                     {/if}
                                 </div>
                                 <div class="user-score">
-                                    {entry.score} <span>pts</span>
+                                    {Math.floor(entry.score / 1000)}
+                                    <span>pts</span>
                                 </div>
                             </div>
                         {/each}
@@ -308,26 +342,6 @@
             position: relative;
             width: 100%;
 
-            .back-link-scaled {
-                position: absolute;
-                left: 0;
-                top: 50%;
-                transform: translateY(-50%);
-                background: rgba(255, 255, 255, 0.1);
-                border: none;
-                color: white;
-                padding: 0.8rem 1.5rem;
-                border-radius: 12px;
-                font-weight: 700;
-                cursor: pointer;
-                transition: all 0.2s;
-
-                &:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                    transform: translateY(-50%) translateX(-5px);
-                }
-            }
-
             h1 {
                 font-size: 4rem;
                 margin: 0 0 1rem 0;
@@ -384,9 +398,24 @@
                 font-size: 2rem;
                 color: rgba(255, 255, 255, 0.3);
 
-                &.top-1 { background: #ffd700; color: #000; box-shadow: 0 0 20px #ffd700; opacity: 1; }
-                &.top-2 { background: #c0c0c0; color: #000; box-shadow: 0 0 15px #c0c0c0; opacity: 1; }
-                &.top-3 { background: #cd7f32; color: #351c1c; box-shadow: 0 0 15px #cd7f32; opacity: 1; }
+                &.top-1 {
+                    background: #ffd700;
+                    color: #000;
+                    box-shadow: 0 0 20px #ffd700;
+                    opacity: 1;
+                }
+                &.top-2 {
+                    background: #c0c0c0;
+                    color: #000;
+                    box-shadow: 0 0 15px #c0c0c0;
+                    opacity: 1;
+                }
+                &.top-3 {
+                    background: #cd7f32;
+                    color: #351c1c;
+                    box-shadow: 0 0 15px #cd7f32;
+                    opacity: 1;
+                }
             }
 
             .user-info {
@@ -394,7 +423,7 @@
                 display: flex;
                 align-items: center;
                 gap: 1rem;
-                
+
                 .user-name {
                     font-weight: 700;
                     font-size: 2rem;
@@ -413,7 +442,12 @@
                 font-size: 2.5rem;
                 font-weight: 900;
                 color: var(--accent);
-                span { font-size: 1.2rem; opacity: 0.5; font-weight: normal; color: #fff; }
+                span {
+                    font-size: 1.2rem;
+                    opacity: 0.5;
+                    font-weight: normal;
+                    color: #fff;
+                }
             }
         }
 
@@ -429,9 +463,19 @@
     }
 
     @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-        40% {transform: translateY(-20px);}
-        60% {transform: translateY(-10px);}
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-20px);
+        }
+        60% {
+            transform: translateY(-10px);
+        }
     }
 
     .game-layout {
@@ -448,10 +492,11 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        max-width: 800px;
+        padding-top: 6rem;
+        max-width: 1200px;
         margin: 0 auto;
         width: 100%;
+        min-height: 0;
     }
 
     .stats-panel {
@@ -501,19 +546,30 @@
 
             &.opt-0 {
                 border-left: 5px solid #e21b3c;
-                .stat-shape { border-radius: 4px; }
+                .stat-shape {
+                    border: none;
+                    background: white;
+                    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+                }
             }
             &.opt-1 {
                 border-left: 5px solid #1368ce;
-                .stat-shape { border-radius: 50%; }
+                .stat-shape {
+                    transform: rotate(45deg);
+                    border-radius: 0;
+                }
             }
             &.opt-2 {
-                border-left: 5px solid #26890c;
-                .stat-shape { border-radius: 50%; transform: rotate(45deg); }
+                border-left: 5px solid #d89e00;
+                .stat-shape {
+                    border-radius: 50%;
+                }
             }
             &.opt-3 {
-                border-left: 5px solid #ffa602;
-                .stat-shape { transform: rotate(45deg); }
+                border-left: 5px solid #26890c;
+                .stat-shape {
+                    border-radius: 0;
+                }
             }
         }
     }
@@ -564,8 +620,13 @@
                 overflow-y: auto;
                 padding: 0.5rem;
 
-                &::-webkit-scrollbar { width: 4px; }
-                &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+                &::-webkit-scrollbar {
+                    width: 4px;
+                }
+                &::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 10px;
+                }
             }
 
             .player-tag {
@@ -612,32 +673,76 @@
     }
 
     .q-header {
-        text-align: center;
-        padding-bottom: 2rem;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2rem 350px 2rem 3rem;
+        z-index: 100;
+        box-sizing: border-box;
+
+        .header-left,
+        .header-right {
+            flex: 1;
+            display: flex;
+        }
+
+        .header-center {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .header-left {
+            justify-content: flex-start;
+        }
+
+        .header-right {
+            justify-content: flex-end;
+        }
 
         .progress-indicator {
-            background: rgba(0, 0, 0, 0.5);
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: rgba(0, 0, 0, 0.3);
             padding: 0.8rem 1.5rem;
             border-radius: 15px;
-            font-size: 1.2rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            display: inline-block;
+
+            .avatar {
+                font-size: 1.2rem;
+            }
+            .username {
+                font-size: 1.2rem;
+                font-weight: 800;
+                color: var(--accent);
+            }
         }
     }
 
     .timer {
-        font-size: 3.5rem;
+        font-size: 2.5rem;
         font-weight: 900;
         background: rgba(0, 0, 0, 0.4);
-        width: 110px;
-        height: 110px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 4px solid var(--accent);
-        margin: 0 auto 1.5rem;
+        margin: 0;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
     }
 
     .danger-pulse {
@@ -647,65 +752,162 @@
     }
 
     @keyframes shakeDanger {
-        from { transform: translateX(-2px); }
-        to { transform: translateX(2px); }
+        from {
+            transform: translateX(-2px);
+        }
+        to {
+            transform: translateX(2px);
+        }
     }
 
-    .question-text {
-        font-size: 1.8rem;
-        margin-bottom: 2rem;
-    }
-
-    .question-image-container {
-        max-width: 500px;
-        margin: 0 auto 2rem;
-        border-radius: 15px;
-        overflow: hidden;
-        border: 4px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .question-image {
+    .question-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        min-height: 0;
         width: 100%;
-        max-height: 250px;
-        object-fit: contain;
-        background: #fff;
+    }
+
+    .question-card {
+        background: white;
+        color: black;
+        padding: 1.5rem 2rem;
+        text-align: center;
+        border-radius: 20px;
+        flex-shrink: 0;
+        margin-bottom: 0;
+        .question-text {
+            margin: 0;
+            font-size: 1.8rem;
+            line-height: 1.2;
+        }
+    }
+
+    .media-area {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        margin-bottom: 2rem;
+
+        .question-image {
+            max-width: 100%;
+            max-height: 100%;
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+            border-radius: 15px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            background: #fff;
+        }
     }
 
     .options-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1rem;
+        gap: 1.5rem;
     }
 
-    .option-btn {
-        padding: 2rem;
-        border: none;
-        border-radius: 15px;
-        color: white;
-        font-size: 1.5rem;
-        font-weight: 700;
-        cursor: pointer;
+    .ans-pill {
+        position: relative;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 1rem;
+        padding: 1.8rem 2.5rem;
+        border-radius: 8px;
+        border: 4px solid #fff;
+        cursor: pointer;
+        transition: all 0.1s;
+        top: 0;
+        height: 100%;
+
+        &.red {
+            background: #e21b3c;
+            box-shadow: 0 8px 0 #8b0000;
+        }
+        &.blue {
+            background: #1368ce;
+            box-shadow: 0 8px 0 #0e4e9a;
+        }
+        &.yellow {
+            background: #d89e00;
+            box-shadow: 0 8px 0 #8b8b00;
+        }
+        &.green {
+            background: #26890c;
+            box-shadow: 0 8px 0 #1b6208;
+        }
+
+        &:hover:not(:disabled) {
+            top: -4px;
+            filter: brightness(1.1);
+        }
+
+        &:active:not(:disabled) {
+            top: 4px;
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+        }
 
         &.selected {
-            border: 4px solid white;
-            transform: scale(0.98);
+            outline: 6px solid var(--accent);
+            outline-offset: 4px;
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        &.dimmed {
+            opacity: 0.5;
+            filter: grayscale(0.8);
         }
 
         .shape {
-            width: 30px;
-            height: 30px;
-            border: 3px solid white;
+            width: 40px;
+            height: 40px;
+            background: white;
+            flex-shrink: 0;
+            filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.2));
+
+            &.triangle {
+                clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            }
+            &.diamond {
+                transform: rotate(45deg);
+                width: 32px;
+                height: 32px;
+            }
+            &.circle {
+                border-radius: 50%;
+            }
+        }
+
+        .text {
+            color: white;
+            font-family: var(--font-pixel);
+            font-size: 1.2rem;
+            margin-left: 2rem;
+            text-align: left;
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .check {
+            position: absolute;
+            right: 1.5rem;
+            background: white;
+            color: black;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 900;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
         }
     }
-
-    .opt-0 { background: #e21b3c; .shape { border-radius: 4px; } }
-    .opt-1 { background: #1368ce; .shape { border-radius: 50%; } }
-    .opt-2 { background: #26890c; .shape { border-radius: 50%; transform: rotate(45deg); } }
-    .opt-3 { background: #ffa602; .shape { border-radius: 0; transform: rotate(45deg); } }
 
     .correct-answer-display {
         padding: 2rem;
@@ -717,6 +919,8 @@
     }
 
     @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
