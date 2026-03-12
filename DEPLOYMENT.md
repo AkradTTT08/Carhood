@@ -12,6 +12,12 @@ The project should have the following structure for deployment:
 - `frontend/` (with its `Dockerfile`)
 - `docker-compose.yml` (at the root)
 
+## Network & Ports
+Ensure the following ports are open in your server's firewall:
+- **Port 3000**: Frontend Access
+- **Port 8081**: Backend API & WebSocket
+- **Port 22**: SSH (for management)
+
 ## Deployment Steps
 
 1. **Get the Code on the Server**
